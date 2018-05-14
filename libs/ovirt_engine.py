@@ -9,19 +9,23 @@ import ovirtsdk4.types as types
 IP_SERVER = '192.168.102.13'
 USERNAME = 'root'
 PASSWORD = 'master#123'
+VM_IP_RECORDS = '/qnap-vm.txt'
+QCS_AUTOMATION_MASTER_CONF = 'qcs_automation_master_conf'
 
-def get_vm_ip():
+def get_vm_ip(qnap_vm_file):
     '''
     Connect to server and return the IP's by reading the file
     :return: list of IP's
     '''
     ssh_shell = spur.SshShell(IP_SERVER, username=USERNAME, password=PASSWORD)
-    with ssh_shell.open('/qnap-vm.txt', 'rb') as remote:
+    with ssh_shell.open(qnap_vm_file, 'rb') as remote:
         return remote.read().splitlines()
 
 
 def create_vm_from_template(cluster_name, template_name, template_datastore, vm_name=None, ip=None):
     logging.basicConfig(level=logging.DEBUG, filename='example.log')
+
+    clean_and_backup_ip_server(VM_IP_RECORDS)
 
     # Create the connection to the server:
     conn = sdk.Connection(
@@ -105,15 +109,29 @@ def create_vm_from_template(cluster_name, template_name, template_datastore, vm_
         vm = vm_service.get()
         if vm.status == types.VmStatus.DOWN:
             vm_service.start()
+            while vm_service.get().status != types.VmStatus.UP:
+                continue
             break
-    time.sleep(500)
-    vm_ip_address = get_vm_ip()
-    print vm_ip_address
 
-    # Close the connection to the server:
     connection.close()
-    return vm_ip_address
+    vm_ips = get_vm_ip(VM_IP_RECORDS)
+    return vm_ips
+
+
+def clean_and_backup_ip_server(records_file):
+    """
+    Clear the record file and take backup
+    :param backup_file: Backup file path
+    :return:
+    """
+    try:
+        ssh_shell = spur.SshShell(IP_SERVER, username=USERNAME, password=PASSWORD)
+        with ssh_shell.open(QCS_AUTOMATION_MASTER_CONF, 'a') as records,\
+                ssh_shell.open(records_file, 'rb') as orig:
+            records.write(unicode(orig.read()))
+            ssh_shell.run(['rm', '-f', '{}'.format(records_file)])
+    except IOError as e:
+        pass
 
 if __name__ == '__main__':
-    for i in range(1):
-        create_vm_from_template('newcl', 'automation-template', 'data1', 'trail_vm%s' %i)
+    create_vm_from_template('newcl', 'automation-template', 'data1', 'automation-vm-test')
