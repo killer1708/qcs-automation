@@ -1,6 +1,8 @@
 import time
 
 from nodes.node import Linux
+from libs.ovirt_engine import create_vm_from_template, get_vm_ip
+from libs.vdb_config import create_config
 
 NFS_SERVER = '192.168.102.13'
 VDBENCH_MOUNT_LOCATION = '/var/vdbench_share'
@@ -15,10 +17,10 @@ def vdbench_deploy(node, repository=None):
         repository = '{}:{}'.format(NFS_SERVER, VDBENCH_MOUNT_LOCATION)
     mount_cmd = ['mount', repository, mnt_dir]
     res, error = node.ssh_conn.execute_command(['java', '-version'])
-    # Todo: java -version print result in stderr instead of stdout
     if error:
-        print "deploying Java..............."
-        node.deploy('java')
+        if not any("openjdk version" in line for line in error):
+            print "deploying Java..............."
+            node.deploy('java')
     if node.is_path_exists(vdbench_exe):
         print "vdbench present already ........"
         return vdbench_exe
@@ -38,7 +40,18 @@ def vdbench_deploy(node, repository=None):
 
 
 def main():
-    ln = Linux('192.168.105.30', 'root', 'master@123')
-    print vdbench_deploy(ln)
+    #vms = create_vm_from_template('newcl', 'automation-template', 'data1', 'trail_vm1')
+    vms = get_vm_ip()
+    print vms
+    ln = Linux(vms[0], 'root', 'master@123')
+    vdbench_exe = vdbench_deploy(ln)
+    master_node = Linux('192.168.102.13', 'root', 'master#123')
+    vdbench_exe = vdbench_deploy(master_node)
+    vdbench_conf = create_config('/root/qcs-automation/libs/qcsbench', res_param='hd=', hostname=[vms[0]])
+    print vdbench_conf
+    print vdbench_exe
+    vdbench_cmd = '{} -f {}'.format(vdbench_exe, vdbench_conf)
+    print vdbench_cmd
+    #master_node.ssh_conn.execute_command(vdbench_cmd)
 
 main()

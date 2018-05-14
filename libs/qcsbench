@@ -1,4 +1,4 @@
-hd=default,vdbench=/root/vdbench-repo,user=root,shell=ssh
+hd=default,vdbench=/opt/vdbench,user=root,shell=ssh
 * hd=two,system=systemb
 
 sd=sd1,host=*,lun=/root/vdbench_test,size=10m
