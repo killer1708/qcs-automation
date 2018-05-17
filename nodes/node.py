@@ -46,7 +46,7 @@ class Linux(Node):
             _dir = dir_queue.pop()
             sub_dir = []
             files = []
-            ls_lrt, error = self.ssh_conn.execute_command(['ls', '-lrt', _dir])
+            _, ls_lrt, error = self.ssh_conn.execute_command(['ls', '-lrt', _dir])
             if not error:
                 # 1st entry would be count of dir and files in given folder
                 ls_lrt = ls_lrt[1:]
@@ -59,7 +59,7 @@ class Linux(Node):
                 yield (_dir, sub_dir, files)
 
     def is_path_exists(self, path):
-        _, error = self.ssh_conn.execute_command(['ls', path])
+        _, _, error = self.ssh_conn.execute_command(['ls', path])
         if error:
             return False
         else:
