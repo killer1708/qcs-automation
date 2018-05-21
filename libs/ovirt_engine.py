@@ -3,57 +3,149 @@
 import logging
 import time
 import spur
+import config
 
 import ovirtsdk4 as sdk
 import ovirtsdk4.types as types
-IP_SERVER = '192.168.102.13'
-USERNAME = 'root'
-PASSWORD = 'master#123'
-VM_IP_RECORDS = '/qnap-vm.txt'
-QCS_AUTOMATION_MASTER_CONF = 'qcs_automation_master_conf'
+
+FTP_SERVER = '192.168.102.13'
+FTP_USERNAME = 'root'
+FTP_PASSWORD = 'master#123'
+
+
+def track_status(service, final_status, status_check_sleep):
+    while True:
+        time.sleep(status_check_sleep)
+        tracking_object = service.get()
+        if tracking_object.status == final_status:
+            break
+
+
+def add_dc(dcs_service, dc_name, description, local, major, minor):
+    """
+    Create Datacenter on the ovirt engine
+    :param dcs_service: Datacenter service object
+    :param dc_name: Datacenter Name
+    :param description: Description
+    :param local:
+    :param major:
+    :param minor:
+    :return:
+    """
+    dc = dcs_service.add(
+        types.DataCenter(
+            name=dc_name,
+            description=description,
+            local=local,
+            version=types.Version(major=major,minor=minor),
+        ),
+    )
+
+
+def add_cluster(cluster_service, cl_name, description, cltype, dc):
+    """
+    Create cluster.
+    :param cluster_service: cluster service object
+    :param cl_name: Cluster name
+    :param description: description
+    :param cltype: type
+    :param dc: Datacenter
+    :return:
+    """
+    cluster_service.add(
+        types.Cluster(
+            name=cl_name,
+            description=description,
+            cpu=types.Cpu(
+                architecture=types.Architecture.X86_64,
+                type=cltype,
+            ),
+            data_center=types.DataCenter(
+                name=dc,
+            ),
+        ),
+)
+
+
+def add_host(hosts_service, host_name, description, address, root_password, cluster, wait_for_up):
+    print('Adding Host : ' + host_name + '...')
+    host = hosts_service.add(
+        types.Host(
+            name=host_name,
+            description=description,
+            address=address,
+            root_password=root_password,
+            cluster=types.Cluster(
+                name=cluster,
+            ),
+        ),
+    )
+    if wait_for_up:
+        host_service = hosts_service.host_service(host.id)
+        track_status(host_service, types.HostStatus.UP, 1)
+
 
 def get_vm_ip(qnap_vm_file):
-    '''
+    """
     Connect to server and return the IP's by reading the file
+    :param qnap_vm_file: FTP file name
     :return: list of IP's
-    '''
-    ssh_shell = spur.SshShell(IP_SERVER, username=USERNAME, password=PASSWORD)
-    with ssh_shell.open(qnap_vm_file, 'rb') as remote:
-        return remote.read().splitlines()
+    """
+    try:
+        ssh_shell = spur.SshShell(FTP_SERVER, username=FTP_USERNAME,
+                                  password=FTP_PASSWORD)
+        with ssh_shell.open(qnap_vm_file, 'rb') as remote:
+            return remote.read().splitlines()
+    except IOError as e:
+        pass
 
 
-def create_vm_from_template(cluster_name, template_name, template_datastore, vm_name=None, ip=None):
+def create_vm_from_template(cluster_name, template_name, template_datastore,
+                            vm_name=None, ip=None):
+    """
+    Create VM from the template.
+    :param cluster_name: cluster name
+    :param template_name: template name
+    :param template_datastore: template datastore
+    :param vm_name: vm name to be created
+    :param ip: Not Supported
+    :return: VM IP list
+    """
+
     logging.basicConfig(level=logging.DEBUG, filename='example.log')
-
-    clean_and_backup_ip_server(VM_IP_RECORDS)
+    clean_and_backup_ip_server(config.VM_IP_RECORDS)
 
     # Create the connection to the server:
     conn = sdk.Connection(
-        url='https://192.168.103.39/ovirt-engine/api',
-        username='admin@internal',
-        password='master@123',
+        url='https://{}/ovirt-engine/api'.format(config.OVIRT_ENGINE_IP),
+        username=config.OVIRT_ENGINE_UNAME,
+        password=config.OVIRT_ENGINE_PASS,
         # ca_file='ca.pem',
         insecure=True,
         debug=True,
         log=logging.getLogger(),
     )
     connection = conn
+
     # Get the reference to the root of the tree of services:
     system_service = connection.system_service()
 
+    # Get the reference to the data centers service:
+    dcs_service = connection.system_service().data_centers_service()
+    # Get the reference to the clusters service:
+    clusters_service = connection.system_service().clusters_service()
+    # Get the reference to the hosts service:
+    hosts_service = connection.system_service().hosts_service()
     # Get the reference to the service that manages the storage domains:
     storage_domains_service = system_service.storage_domains_service()
 
     # Find the storage domain we want to be used for virtual machine disks:
-    storage_domain = storage_domains_service.list(search='name=%s'% template_datastore)[0]
+    storage_domain = storage_domains_service.list(
+                                    search='name=%s'% template_datastore)[0]
 
     # Get the reference to the service that manages the templates:
     templates_service = system_service.templates_service()
 
-    # When a template has multiple versions they all have the same name, so
-    # we need to explicitly find the one that has the version name or
-    # version number that we want to use. In this case we want to use
-    # version 3 of the template.
     templates = templates_service.list(search='name=%s' %template_name)
     template_id = None
     for template in templates:
@@ -64,7 +156,8 @@ def create_vm_from_template(cluster_name, template_name, template_datastore, vm_
     # Find the template disk we want be created on specific storage domain
     # for our virtual machine:
     template_service = templates_service.template_service(template_id)
-    disk_attachments = connection.follow_link(template_service.get().disk_attachments)
+    disk_attachments = connection.follow_link(
+                                template_service.get().disk_attachments)
     disk = disk_attachments[0].disk
 
     # Get the reference to the service that manages the virtual machines:
@@ -101,8 +194,7 @@ def create_vm_from_template(cluster_name, template_name, template_datastore, vm_
     # was created in the previous step:
     vm_service = vms_service.vm_service(vm.id)
 
-
-    # Wait till the virtual machine is down, which indicats that all the
+    # Wait till the virtual machine is down, which indicates that all the
     # disks have been created:
     while True:
         time.sleep(5)
@@ -114,19 +206,20 @@ def create_vm_from_template(cluster_name, template_name, template_datastore, vm_
             break
 
     connection.close()
-    vm_ips = get_vm_ip(VM_IP_RECORDS)
+    vm_ips = get_vm_ip(config.VM_IP_RECORDS)
     return vm_ips
 
 
 def clean_and_backup_ip_server(records_file):
     """
     Clear the record file and take backup
-    :param backup_file: Backup file path
+    :param records_file: Backup file path
     :return:
     """
     try:
-        ssh_shell = spur.SshShell(IP_SERVER, username=USERNAME, password=PASSWORD)
-        with ssh_shell.open(QCS_AUTOMATION_MASTER_CONF, 'a') as records,\
+        ssh_shell = spur.SshShell(FTP_SERVER, username=FTP_USERNAME,
+                                  password=FTP_PASSWORD)
+        with ssh_shell.open(config.QCS_AUTOMATION_MASTER_CONF, 'a') as records,\
                 ssh_shell.open(records_file, 'rb') as orig:
             records.write(unicode(orig.read()))
             ssh_shell.run(['rm', '-f', '{}'.format(records_file)])
@@ -134,4 +227,7 @@ def clean_and_backup_ip_server(records_file):
         pass
 
 if __name__ == '__main__':
-    create_vm_from_template('newcl', 'automation-template', 'data1', 'automation-vm-test')
+    # add_dc('dc_service', '', 'My data center', False, 4, 0)
+    # add_cluster('cl_service', '', 'My cluster', 'Intel Family', 'mydc')
+    create_vm_from_template(config.CLUSTER_NAME, config.TEMPLATE_NAME,
+                            config.TEMPLATE_DS, 'automation-vm-test')
