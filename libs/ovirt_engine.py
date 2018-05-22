@@ -93,7 +93,8 @@ def get_vm_ip(qnap_vm_file):
     """
     try:
         ssh_shell = spur.SshShell(FTP_SERVER, username=FTP_USERNAME,
-                                  password=FTP_PASSWORD)
+                                  password=FTP_PASSWORD,
+				  missing_host_key=spur.ssh.MissingHostKey.accept)
         with ssh_shell.open(qnap_vm_file, 'rb') as remote:
             return remote.read().splitlines()
     except IOError as e:
@@ -218,7 +219,8 @@ def clean_and_backup_ip_server(records_file):
     """
     try:
         ssh_shell = spur.SshShell(FTP_SERVER, username=FTP_USERNAME,
-                                  password=FTP_PASSWORD)
+                                  password=FTP_PASSWORD,
+				  missing_host_key=spur.ssh.MissingHostKey.accept)
         with ssh_shell.open(config.QCS_AUTOMATION_MASTER_CONF, 'a') as records,\
                 ssh_shell.open(records_file, 'rb') as orig:
             records.write(unicode(orig.read()))

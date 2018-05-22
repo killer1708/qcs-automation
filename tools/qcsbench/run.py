@@ -16,7 +16,6 @@ def vdbench_deploy(node, repository=None):
     if not repository:
         repository = '{}:{}'.format(NFS_SERVER, VDBENCH_MOUNT_LOCATION)
     mount_cmd = ['mount', repository, mnt_dir]
-    import pdb; pdb.set_trace()
     _, res, error = node.ssh_conn.execute_command(['java', '-version'])
     if error:
         if not any("openjdk version" in line for line in error):
@@ -41,20 +40,19 @@ def vdbench_deploy(node, repository=None):
 
 
 def main():
-    #vms = create_vm_from_template('newcl', 'automation-template', 'data1', 'trail_vm1')
-    #vms = get_vm_ip()
-    vms = ['192.168.105.58']
+    vms = create_vm_from_template('newcl', 'automation-template', 'data1', 'Demo_VM')
+    # vms = get_vm_ip()
+    # vms = ['192.168.105.64']
     print vms
     ln = Linux(vms[0], 'root', 'master@123')
     vdbench_exe = vdbench_deploy(ln)
     master_node = Linux('192.168.102.13', 'root', 'master#123')
     vdbench_exe = vdbench_deploy(master_node)
-    vdbench_conf = create_config('/root/qcs-automation/libs/qcsbench', res_param='hd=', hostname=[vms[0]])
+    vdbench_conf = create_config('/root/qcs_automation/libs/qcsbench', res_param='hd=', hostname=[vms[0]])
     print vdbench_conf
     print vdbench_exe
     vdbench_cmd = '{} -f {}'.format(vdbench_exe, vdbench_conf)
     print vdbench_cmd
     stdin, res, error = master_node.ssh_conn.execute_command(vdbench_cmd)
-    import pdb; pdb.set_trace()
 
 main()
