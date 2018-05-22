@@ -18,7 +18,7 @@ class SshConn(object):
         self.conn.connect(self.ip_address, username=self.user,
                           password=self.password)
         child = pexpect.spawn('ssh {}@{}'.format(self.user, self.ip_address))
-        child.expect('(yes/no)?')
+        child.expect(['(yes/no)?'])
         child.sendline('yes')
 
     def execute_command(self, cmd):
