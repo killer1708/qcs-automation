@@ -42,7 +42,6 @@ def vdbench_deploy(node, repository=None):
 def main():
     vms = create_vm_from_template('newcl', 'automation-template', 'data1', 'Demo_VM')
     # vms = get_vm_ip()
-    # vms = ['192.168.105.64']
     print vms
     ln = Linux(vms[0], 'root', 'master@123')
     vdbench_exe = vdbench_deploy(ln)
