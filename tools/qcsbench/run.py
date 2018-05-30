@@ -39,19 +39,63 @@ def vdbench_deploy(node, repository=None):
             return vdbench_exe
 
 
+def key_is_present(node):
+    """
+    Verify the key is present
+    """
+    _, stdout, stderr =  node.ssh_conn.execute_command('ls /root/.ssh')
+    if 'id_rsa.pub' in stdout:
+        return True
+    return False
+
+def push_key_to_slave(master_node, slave_vms):
+    """
+    Copy public key of master to slave VMs
+    """
+    command = 'cat /root/.ssh/id_rsa.pub'
+    _, stdout, stderr = master_node.ssh_conn.execute_command(command)
+    for slave_node in slave_vms:
+        command = 'echo {} >> /root/.ssh/authorized_keys'.format(stdout[0])
+        _, stdout, stderr = slave_node.ssh_conn.execute_command(command)
+
+def generate_key(master_node):
+    """
+    Genrate key
+    """
+    if key_is_present(master_node):
+        print ("A key is already present.")
+    else:
+        # Genarate private key
+        master_node.ssh_conn.execute_command('ssh-keygen -t rsa -f /home/oracle/.ssh/id_rsa -q -P ""')
+
+def configure_master(master_node, slave_nodes):
+    """
+    This will copy master ssh key to all the slave VM's for password less authentication.
+    """
+    if key_is_present(master_node):
+        push_key_to_slave(master_node, slave_nodes)
+    else:
+        generate_key(master_node)
+        push_key_to_slave(master_node, slave_nodes)
+
+
 def main():
-    vms = create_vm_from_template('newcl', 'automation-template', 'data1', 'Demo_VM')
+    # vms = create_vm_from_template('newcl', 'automation-template', 'data1', 'Demo_VM')
     # vms = get_vm_ip()
+    output_dir = '~/vdbench-output'
+    vms = ['192.168.105.97']
     print vms
     ln = Linux(vms[0], 'root', 'master@123')
     vdbench_exe = vdbench_deploy(ln)
-    master_node = Linux('192.168.102.13', 'root', 'master#123')
+    master_node = Linux('192.168.105.97', 'root', 'master@123')
     vdbench_exe = vdbench_deploy(master_node)
+    configure_master(master_node, [ln])
     vdbench_conf = create_config('/root/qcs_automation/libs/qcsbench', res_param='hd=', hostname=[vms[0]])
     print vdbench_conf
     print vdbench_exe
-    vdbench_cmd = '{} -f {}'.format(vdbench_exe, vdbench_conf)
+    vdbench_cmd = '{} -f {} -o {}'.format(vdbench_exe, vdbench_conf, output_dir)
     print vdbench_cmd
     stdin, res, error = master_node.ssh_conn.execute_command(vdbench_cmd)
+    print 'Output Dir : ', output_dir
 
 main()
