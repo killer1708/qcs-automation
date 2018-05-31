@@ -1,0 +1,15 @@
+Master node should have following packages
+yum
+1. Python-pip 
+2. gcc
+3. python-devel
+4. libxslt-devel libxml++-devel libxml2-devel
+
+pip
+3. Paramiko
+4. spur
+5. pexpect
+
+Master node should have the source repository under /root/
+
+Repo path : git@192.168.102.15:alok.thakur/qcs-automation.git

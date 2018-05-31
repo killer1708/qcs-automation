@@ -36,8 +36,8 @@ def create_config(config_path, res_param, **kwargs):
                                 )
             file_content.remove(file_content[index])
         index = get_index(file_content, res_param)
-        hd_name = ''.join(random.choice(string.lowercase) for x in range(6))
         for host in kwargs.get('hostname'):
+            hd_name = ''.join(random.choice(string.lowercase) for x in range(6))
             file_content.insert(index, 'hd={},system={}\n'.format(hd_name, host))
             index += 1
         for line in file_content:

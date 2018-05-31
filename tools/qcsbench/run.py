@@ -1,4 +1,6 @@
 import time
+import subprocess
+import config
 
 from nodes.node import Linux
 from libs.ovirt_engine import create_vm_from_template, get_vm_ip
@@ -6,7 +8,6 @@ from libs.vdb_config import create_config
 
 NFS_SERVER = '192.168.102.13'
 VDBENCH_MOUNT_LOCATION = '/var/vdbench_share'
-
 
 def vdbench_deploy(node, repository=None):
     vdbench_dir = '/opt/vdbench'
@@ -54,8 +55,9 @@ def push_key_to_slave(master_node, slave_vms):
     """
     command = 'cat /root/.ssh/id_rsa.pub'
     _, stdout, stderr = master_node.ssh_conn.execute_command(command)
+    key_data = stdout[0]
     for slave_node in slave_vms:
-        command = 'echo {} >> /root/.ssh/authorized_keys'.format(stdout[0])
+        command = 'echo {} >> /root/.ssh/authorized_keys'.format(key_data)
         _, stdout, stderr = slave_node.ssh_conn.execute_command(command)
 
 def generate_key(master_node):
@@ -66,12 +68,29 @@ def generate_key(master_node):
         print ("A key is already present.")
     else:
         # Genarate private key
-        master_node.ssh_conn.execute_command('ssh-keygen -t rsa -f /home/oracle/.ssh/id_rsa -q -P ""')
+        master_node.ssh_conn.execute_command(
+                        'ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""')
+
+def check_firewalld(master_node):
+    """
+    Check firewall status,if its running then stop
+    """
+    command = "firewall-cmd --state"
+    _, stdout, stderr = master_node.ssh_conn.execute_command(command)
+    if "not" in stderr[0]:
+        print "Firewall not running ..."
+    else:
+        command = "systemctl stop firewalld"
+        _, stdout, stderr = master_node.ssh_conn.execute_command(command)
+        print "Warning : Firewall is stopped, please start the firewall\
+               once execution is complete..."
 
 def configure_master(master_node, slave_nodes):
     """
-    This will copy master ssh key to all the slave VM's for password less authentication.
+    This will copy master ssh key to all the slave VM's for
+    password less authentication.
     """
+    check_firewalld(master_node)
     if key_is_present(master_node):
         push_key_to_slave(master_node, slave_nodes)
     else:
@@ -79,23 +98,35 @@ def configure_master(master_node, slave_nodes):
         push_key_to_slave(master_node, slave_nodes)
 
 
+def get_master_ip():
+    """
+    Gets IP of current machine
+    """
+    return subprocess.check_output('hostname -I | cut -d\" \" -f 1', shell=True)
+
 def main():
-    # vms = create_vm_from_template('newcl', 'automation-template', 'data1', 'Demo_VM')
+    vms = create_vm_from_template(config.CLUSTER_NAME, config.TEMPLATE_NAME,
+                                  config.TEMPLATE_DS, config.VM_NAME,
+                                  vm_count=config.SLAVE_VM_COUNT)
     # vms = get_vm_ip()
-    output_dir = '~/vdbench-output'
-    vms = ['192.168.105.97']
+    # vms = ['192.168.105.98', '192.168.105.99']
+
     print vms
-    ln = Linux(vms[0], 'root', 'master@123')
-    vdbench_exe = vdbench_deploy(ln)
-    master_node = Linux('192.168.105.97', 'root', 'master@123')
+    linux_node = []
+    for vm in vms:
+        ln = Linux(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
+        vdbench_exe = vdbench_deploy(ln)
+        linux_node.append(ln)
+    master_ip = get_master_ip()
+    master_node = Linux(master_ip, config.MASTER_UNAME, config.MASTER_PASSWD)
     vdbench_exe = vdbench_deploy(master_node)
-    configure_master(master_node, [ln])
-    vdbench_conf = create_config('/root/qcs_automation/libs/qcsbench', res_param='hd=', hostname=[vms[0]])
+    configure_master(master_node, linux_node)
+    vdbench_conf = create_config(config.SAMPLE_VDB_CONFIG, res_param='hd=',
+                                 hostname=vms)
     print vdbench_conf
     print vdbench_exe
-    vdbench_cmd = '{} -f {} -o {}'.format(vdbench_exe, vdbench_conf, output_dir)
+    vdbench_cmd = '{} -f {}'.format(vdbench_exe, vdbench_conf)
     print vdbench_cmd
     stdin, res, error = master_node.ssh_conn.execute_command(vdbench_cmd)
-    print 'Output Dir : ', output_dir
 
 main()

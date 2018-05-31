@@ -102,7 +102,7 @@ def get_vm_ip(qnap_vm_file):
 
 
 def create_vm_from_template(cluster_name, template_name, template_datastore,
-                            vm_name=None, ip=None):
+                            vm_name=None, vm_count=1):
     """
     Create VM from the template.
     :param cluster_name: cluster name
@@ -128,83 +128,84 @@ def create_vm_from_template(cluster_name, template_name, template_datastore,
     )
     connection = conn
 
-    # Get the reference to the root of the tree of services:
-    system_service = connection.system_service()
+    for count in range(vm_count):
+        # Get the reference to the root of the tree of services:
+        system_service = connection.system_service()
 
-    # Get the reference to the data centers service:
-    dcs_service = connection.system_service().data_centers_service()
-    # Get the reference to the clusters service:
-    clusters_service = connection.system_service().clusters_service()
-    # Get the reference to the hosts service:
-    hosts_service = connection.system_service().hosts_service()
-    # Get the reference to the service that manages the storage domains:
-    storage_domains_service = system_service.storage_domains_service()
+        # Get the reference to the data centers service:
+        dcs_service = connection.system_service().data_centers_service()
+        # Get the reference to the clusters service:
+        clusters_service = connection.system_service().clusters_service()
+        # Get the reference to the hosts service:
+        hosts_service = connection.system_service().hosts_service()
+        # Get the reference to the service that manages the storage domains:
+        storage_domains_service = system_service.storage_domains_service()
 
-    # Find the storage domain we want to be used for virtual machine disks:
-    storage_domain = storage_domains_service.list(
-                                    search='name=%s'% template_datastore)[0]
+        # Find the storage domain we want to be used for virtual machine disks:
+        storage_domain = storage_domains_service.list(
+                                        search='name=%s'% template_datastore)[0]
 
-    # Get the reference to the service that manages the templates:
-    templates_service = system_service.templates_service()
+        # Get the reference to the service that manages the templates:
+        templates_service = system_service.templates_service()
 
-    templates = templates_service.list(search='name=%s' %template_name)
-    template_id = None
-    for template in templates:
-        if template.version.version_number == 1:
-            template_id = template.id
-            break
+        templates = templates_service.list(search='name=%s' %template_name)
+        template_id = None
+        for template in templates:
+            if template.version.version_number == 1:
+                template_id = template.id
+                break
 
-    # Find the template disk we want be created on specific storage domain
-    # for our virtual machine:
-    template_service = templates_service.template_service(template_id)
-    disk_attachments = connection.follow_link(
-                                template_service.get().disk_attachments)
-    disk = disk_attachments[0].disk
+        # Find the template disk we want be created on specific storage domain
+        # for our virtual machine:
+        template_service = templates_service.template_service(template_id)
+        disk_attachments = connection.follow_link(
+                                    template_service.get().disk_attachments)
+        disk = disk_attachments[0].disk
 
-    # Get the reference to the service that manages the virtual machines:
-    vms_service = system_service.vms_service()
+        # Get the reference to the service that manages the virtual machines:
+        vms_service = system_service.vms_service()
 
-    # Add a new virtual machine explicitly indicating the identifier of the
-    # template version that we want to use and indicating that template disk
-    # should be created on specific storage domain for the virtual machine:
-    vm = vms_service.add(
-        types.Vm(
-            name=vm_name,
-            cluster=types.Cluster(
-                name=cluster_name
-            ),
-            template=types.Template(
-                id=template_id
-            ),
-            disk_attachments=[
-                types.DiskAttachment(
-                    disk=types.Disk(
-                        id=disk.id,
-                        format=types.DiskFormat.COW,
-                        storage_domains=[
-                            types.StorageDomain(
-                                id=storage_domain.id,
-                            ),
-                        ],
-                    ),
+        # Add a new virtual machine explicitly indicating the identifier of the
+        # template version that we want to use and indicating that template disk
+        # should be created on specific storage domain for the virtual machine:
+        vm = vms_service.add(
+            types.Vm(
+                name=vm_name + str(count),
+                cluster=types.Cluster(
+                    name=cluster_name
                 ),
-            ],
-             )
-    )
-    # Get a reference to the service that manages the virtual machine that
-    # was created in the previous step:
-    vm_service = vms_service.vm_service(vm.id)
+                template=types.Template(
+                    id=template_id
+                ),
+                disk_attachments=[
+                    types.DiskAttachment(
+                        disk=types.Disk(
+                            id=disk.id,
+                            format=types.DiskFormat.COW,
+                            storage_domains=[
+                                types.StorageDomain(
+                                    id=storage_domain.id,
+                                ),
+                            ],
+                        ),
+                    ),
+                ],
+                 )
+        )
+        # Get a reference to the service that manages the virtual machine that
+        # was created in the previous step:
+        vm_service = vms_service.vm_service(vm.id)
 
-    # Wait till the virtual machine is down, which indicates that all the
-    # disks have been created:
-    while True:
-        time.sleep(5)
-        vm = vm_service.get()
-        if vm.status == types.VmStatus.DOWN:
-            vm_service.start()
-            while vm_service.get().status != types.VmStatus.UP:
-                continue
-            break
+        # Wait till the virtual machine is down, which indicates that all the
+        # disks have been created:
+        while True:
+            time.sleep(5)
+            vm = vm_service.get()
+            if vm.status == types.VmStatus.DOWN:
+                vm_service.start()
+                while vm_service.get().status != types.VmStatus.UP:
+                    continue
+                break
 
     connection.close()
     vm_ips = get_vm_ip(config.VM_IP_RECORDS)
