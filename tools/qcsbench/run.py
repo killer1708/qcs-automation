@@ -19,15 +19,16 @@ def vdbench_deploy(node, repository=None):
     mount_cmd = ['mount', repository, mnt_dir]
     _, res, error = node.ssh_conn.execute_command(['java', '-version'])
     if error:
-        if not any("openjdk version" in line for line in error):
-            print ("deploying Java...............")
+        print (error)
+        if not any(b"openjdk version" in line for line in error):
+            print("deploying Java...............")
             node.deploy('java')
     if node.is_path_exists(vdbench_exe):
-        print ("vdbench present already ........")
+        print("vdbench present already ........")
         return vdbench_exe
     for _dir in (vdbench_dir, mnt_dir):
         node.makedir(_dir)
-    print ("fetching vdbench and deploying .......")
+    print("fetching vdbench and deploying .......")
     node.deploy('nfs-utils')
     _, _, error = node.ssh_conn.execute_command(mount_cmd)
     for base, _dir, files in node.walk(mnt_dir):
@@ -36,7 +37,7 @@ def vdbench_deploy(node, repository=None):
             node.ssh_conn.execute_command(['cp', '-rp', base_dir, vdbench_dir])
             time.sleep(20)
             _, _, error = node.ssh_conn.execute_command(['umount', mnt_dir])
-            print ({}.format(error))
+            print(error)
             return vdbench_exe
 
 
@@ -65,11 +66,11 @@ def generate_key(master_node):
     Genrate key
     """
     if key_is_present(master_node):
-        print ("A key is already present.")
+        print("A key is already present.")
     else:
         # Genarate private key
         master_node.ssh_conn.execute_command(
-                        'ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""')
+                        'echo y | ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""')
 
 def check_firewalld(master_node):
     """
@@ -77,12 +78,12 @@ def check_firewalld(master_node):
     """
     command = "firewall-cmd --state"
     _, stdout, stderr = master_node.ssh_conn.execute_command(command)
-    if "not" in stderr[0]:
-        print ("Firewall not running ...")
+    if b"not" in stderr[0]:
+        print("Firewall not running ...")
     else:
         command = "systemctl stop firewalld"
         _, stdout, stderr = master_node.ssh_conn.execute_command(command)
-        print ("Warning : Firewall is stopped, please start the firewall\
+        print("Warning : Firewall is stopped, please start the firewall\
                once execution is complete...")
 
 def configure_master(master_node, slave_nodes):
@@ -105,13 +106,16 @@ def get_master_ip():
     return subprocess.check_output('hostname -I | cut -d\" \" -f 1', shell=True)
 
 def main():
-    vms = create_vm_from_template(config.CLUSTER_NAME, config.TEMPLATE_NAME,
-                                  config.TEMPLATE_DS, config.VM_NAME,
-                                  vm_count=config.SLAVE_VM_COUNT)
+    """
+    vms = create_vm_from_template(
+            config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+            config.OVIRT_ENGINE_PASS, config.CLUSTER_NAME, config.TEMPLATE_NAME,
+            config.TEMPLATE_DS, config.VM_NAME, vm_count=config.SLAVE_VM_COUNT)
+    """
     # vms = get_vm_ip()
-    # vms = ['192.168.105.98', '192.168.105.99']
+    vms = ['192.168.105.56', '192.168.105.57']
 
-    print ({}.format(vms))
+    print(vms)
     linux_node = []
     for vm in vms:
         ln = Linux(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
@@ -123,10 +127,10 @@ def main():
     configure_master(master_node, linux_node)
     vdbench_conf = create_config(config.SAMPLE_VDB_CONFIG, res_param='hd=',
                                  hostname=vms)
-    print ({}.format(vdbench_conf))
-    print ({}.format(vdbench_exe))
+    print(vdbench_conf)
+    print(vdbench_exe)
     vdbench_cmd = '{} -f {}'.format(vdbench_exe, vdbench_conf)
-    print ({}.format(vdbench_cmd))
+    print(vdbench_cmd)
     stdin, res, error = master_node.ssh_conn.execute_command(vdbench_cmd)
 
 main()

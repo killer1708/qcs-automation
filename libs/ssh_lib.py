@@ -38,5 +38,5 @@ class SshConn(object):
         return ssh_stdin, ssh_stdout.read().splitlines(), ssh_stderr.read().splitlines()
 
 if __name__ == '__main__':
-    conn = SshConn('192.168.105.97', 'root', 'master@123')
-    print (conn.execute_command('ls'))
+    conn = SshConn('192.168.102.13', 'root', 'master#123')
+    print (conn.execute_command('echo y | ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""'))

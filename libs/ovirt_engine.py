@@ -8,9 +8,14 @@ import libs.config as config
 import ovirtsdk4 as sdk
 import ovirtsdk4.types as types
 
+# These constants will get removed once, we can get the IP information
+# of VM's from ovirt engine
 FTP_SERVER = '192.168.102.13'
 FTP_USERNAME = 'root'
 FTP_PASSWORD = 'master#123'
+# Files required for getting IP information from FTP server
+VM_IP_RECORDS = '/qnap-vm.txt'
+QCS_AUTOMATION_MASTER_CONF = 'qcs_automation_master_conf'
 
 
 def track_status(service, final_status, status_check_sleep):
@@ -95,13 +100,14 @@ def get_vm_ip(qnap_vm_file):
         ssh_shell = spur.SshShell(FTP_SERVER, username=FTP_USERNAME,
                                   password=FTP_PASSWORD,
 				  missing_host_key=spur.ssh.MissingHostKey.accept)
-        with ssh_shell.open(qnap_vm_file, 'rb') as remote:
+        with ssh_shell.open(qnap_vm_file, 'r') as remote:
             return remote.read().splitlines()
     except IOError as e:
         pass
 
 
-def create_vm_from_template(cluster_name, template_name, template_datastore,
+def create_vm_from_template(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd,
+                            cluster_name, template_name, template_datastore,
                             vm_name=None, vm_count=1):
     """
     Create VM from the template.
@@ -109,18 +115,17 @@ def create_vm_from_template(cluster_name, template_name, template_datastore,
     :param template_name: template name
     :param template_datastore: template datastore
     :param vm_name: vm name to be created
-    :param ip: Not Supported
     :return: VM IP list
     """
 
     logging.basicConfig(level=logging.DEBUG, filename='example.log')
-    clean_and_backup_ip_server(config.VM_IP_RECORDS)
+    clean_and_backup_ip_server(VM_IP_RECORDS)
 
     # Create the connection to the server:
     conn = sdk.Connection(
-        url='https://{}/ovirt-engine/api'.format(config.OVIRT_ENGINE_IP),
-        username=config.OVIRT_ENGINE_UNAME,
-        password=config.OVIRT_ENGINE_PASS,
+        url='https://{}/ovirt-engine/api'.format(ovirt_engine_ip),
+        username=ov_engine_uname,
+        password=ov_engine_passwd,
         # ca_file='ca.pem',
         insecure=True,
         debug=True,
@@ -208,7 +213,7 @@ def create_vm_from_template(cluster_name, template_name, template_datastore,
                 break
 
     connection.close()
-    vm_ips = get_vm_ip(config.VM_IP_RECORDS)
+    vm_ips = get_vm_ip(VM_IP_RECORDS)
     return vm_ips
 
 
@@ -222,8 +227,8 @@ def clean_and_backup_ip_server(records_file):
         ssh_shell = spur.SshShell(FTP_SERVER, username=FTP_USERNAME,
                                   password=FTP_PASSWORD,
 				  missing_host_key=spur.ssh.MissingHostKey.accept)
-        with ssh_shell.open(config.QCS_AUTOMATION_MASTER_CONF, 'a') as records,\
-                ssh_shell.open(records_file, 'rb') as orig:
+        with ssh_shell.open(QCS_AUTOMATION_MASTER_CONF, 'a') as records,\
+                ssh_shell.open(records_file, 'r') as orig:
             records.write(str(orig.read()))
             ssh_shell.run(['rm', '-f', '{}'.format(records_file)])
     except IOError as e:
