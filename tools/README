@@ -31,7 +31,7 @@ Configuration:
 	|. . .  .+=oo E   | 
 	| . .   o. +.     | 
 	+----[SHA256]-----+ 
-	msys@msys-ThinkPad-Edge-E431:~/projects/vdbench/vdbench-repo$ sudo apt-get install sshpass 
+	msys@msys-ThinkPad-Edge-E431:~/projects/vdbench/vdbench-repo$ yum -y install sshpass
 	msys@msys-ThinkPad-Edge-E431:~/projects/vdbench/vdbench-repo$ sshpass -p 'master#123' ssh root@192.168.102.13 'mkdir -p ~/.ssh' 
 	msys@msys-ThinkPad-Edge-E431:~/projects/vdbench/vdbench-repo$ cat ~/.ssh/id_rsa.pub | sshpass -p 'master#123' ssh root@192.168.102.13 'cat >> /root/.ssh/authorized_keys' 
 	msys@msys-ThinkPad-Edge-E431:~/projects/vdbench/vdbench-repo$ sshpass -p 'master#123' ssh root@192.168.102.13 'chmod 700 ~/.ssh; chmod 640 ~/.ssh/authorized_keys' 

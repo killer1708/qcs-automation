@@ -74,7 +74,7 @@ class Linux(Node):
 
 if __name__ == '__main__':
     ln = Linux('192.168.102.14', 'root', 'master#123')
-    print ln.is_path_exists('/root/test/wer')
+    print ({}.format(ln.is_path_exists('/root/test/wer')))
 
     # for _dir, sub_dirs, files in ln.walk('/root/test'):
     #     print _dir, sub_dirs, files

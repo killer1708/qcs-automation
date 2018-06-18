@@ -39,4 +39,4 @@ class SshConn(object):
 
 if __name__ == '__main__':
     conn = SshConn('192.168.105.97', 'root', 'master@123')
-    print conn.execute_command('ls')
+    print (conn.execute_command('ls'))

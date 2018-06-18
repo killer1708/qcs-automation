@@ -5,11 +5,22 @@ yum
 3. python-devel
 4. libxslt-devel libxml++-devel libxml2-devel
 
-pip
-3. Paramiko
-4. spur
-5. pexpect
+pip3
+1. Paramiko
+2. spur
+3. pexpect
+4. TestLink-API-Python-client
+5. ovirt-engine-sdk-python
 
 Master node should have the source repository under /root/
 
 Repo path : git@192.168.102.15:alok.thakur/qcs-automation.git
+
+After cloning the qcs-automation repository, add the PYTHONPATH.
+e.g.
+- cd qcs-automation/
+- export PYTHONPATH=`pwd`:$PYTHONPATH
+
+For permanantly adding the directory in PYTHONPATH, please add following line to '.bashrc'
+- export PYTHONPATH=/root/qcs-automation:$PYTHONPATH
+

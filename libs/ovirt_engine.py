@@ -3,7 +3,7 @@
 import logging
 import time
 import spur
-import config
+import libs.config as config
 
 import ovirtsdk4 as sdk
 import ovirtsdk4.types as types
@@ -224,7 +224,7 @@ def clean_and_backup_ip_server(records_file):
 				  missing_host_key=spur.ssh.MissingHostKey.accept)
         with ssh_shell.open(config.QCS_AUTOMATION_MASTER_CONF, 'a') as records,\
                 ssh_shell.open(records_file, 'rb') as orig:
-            records.write(unicode(orig.read()))
+            records.write(str(orig.read()))
             ssh_shell.run(['rm', '-f', '{}'.format(records_file)])
     except IOError as e:
         pass
