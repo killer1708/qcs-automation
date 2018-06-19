@@ -8,7 +8,7 @@ TEMPLATE_DS='data1'
 VM_NAME='qcs_vm'
 
 # slave vm details
-SLAVE_VM_COUNT=2
+SLAVE_VM_COUNT=1
 SLAVE_UNAME='root'
 SLAVE_PASSWORD='master@123'
 
