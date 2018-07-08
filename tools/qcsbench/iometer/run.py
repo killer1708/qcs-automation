@@ -68,7 +68,6 @@ def configuration_file(slave_nodes):
 def main():
     """
     """
-    '''
     for i in range(config.SLAVE_VM_COUNT):
         #search if vm is already present
         data = search_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
@@ -86,9 +85,8 @@ def main():
             config.OVIRT_ENGINE_PASS, config.CLUSTER_NAME, config.TEMPLATE_NAME,
             config.TEMPLATE_DS, config.VM_NAME, vm_count=config.SLAVE_VM_COUNT)
 
-    # vms = get_vm_ip()
-    '''
-    vms = ['192.168.105.18']
+    #vms = get_vm_ip()
+    #vms = ['192.168.105.18']
    
     print (vms)
     linux_node = []
@@ -97,12 +95,11 @@ def main():
         check_firewalld(ln)
         linux_node.append(ln)
     master_node = Linux(config.IOMETER_SERVER, config.IOMETER_UNAME, config.IOMETER_PASSWD)
-    '''
+
     for i in range(config.SLAVE_VM_COUNT): 
         vm_add_disk(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
             config.OVIRT_ENGINE_PASS, config.TEMPLATE_DS, (config.VM_NAME+str(i)), config.DISK_NAME)
 
-    '''
     configuration_file(linux_node)
     start_iometer(master_node, linux_node)
 
