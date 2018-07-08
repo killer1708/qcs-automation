@@ -75,7 +75,7 @@ class TEST_LINK(object):
 
     def getTestCaseByTestPlanID(self, TESTPLAN_ID):
         userid = int(self.tls.getUserByLogin('vitthal')[0]['dbID'])
-        response = self.tls.getTestCasesForTestPlan(testplanid=TESTPLAN_ID)#, assignedto=userid, details='full')
+        response = self.tls.getTestCasesForTestPlan(testplanid=TESTPLAN_ID)
         return(response)
 
     def getTestCaseByID(self, CASE_ID, VERSION):

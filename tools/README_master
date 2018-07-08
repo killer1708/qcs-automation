@@ -1,16 +1,22 @@
 Master node should have following packages
 yum
-1. Python-pip 
-2. gcc
-3. python-devel
-4. libxslt-devel libxml++-devel libxml2-devel
+1. yum -y install gcc openssl-devel bzip2-devel                                                               
+2. yum -y install openssl-devel                                                              
+3. yum -y install zlib-devel bzip2-devel sqlite sqlite-devel openssl-devel                 
+4. yum -y install libcurl-devel                                                                                   
+5. yum -y groupinstall -y "Development Tools"                                                         
+6. yum -y install libxslt-devel libxml2-devel libxml++-devel
 
-pip3
-1. Paramiko
-2. spur
-3. pexpect
-4. TestLink-API-Python-client
-5. ovirt-engine-sdk-python
+
+Install python3.5 with pip3.5
+pip3.5 install --upgrade pip3.5
+export PYCURL_SSL_LIBRARY=nss 
+1. pip3.5 install paramiko
+2. pip3.5 install spur
+3. pip3.5 install pexpect
+4. pip3.5 install TestLink-API-Python-client
+5. pip3.5 install pycurl 
+5. pip3.5 install ovirt-engine-sdk-python
 
 Master node should have the source repository under /root/
 

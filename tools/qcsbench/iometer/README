@@ -1,0 +1,17 @@
+README Before running iometer
+-----------------------------------
+Requrements:
+- Windows 8 and above
+- Centos7
+
+
+Configuration:
+- create windows vm with user administrator and password master@123
+- Install IOmeter and dynamo in Desktop directory
+- Disable the firewall
+- install freesshd and start the service on port 22 create user administrator 
+  and password master@123 for freesshd server
+ 
+========================================================================================== 
+
+

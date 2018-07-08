@@ -30,7 +30,10 @@ class Node(object):
 class Linux(Node):
 
     def __init__(self, ip, user, password):
-        self.ssh_conn = SshConn(ip, user, password)
+        self.ip = ip
+        self.user = user
+        self.password = password
+        self.ssh_conn = SshConn(self.ip, self.user, self.password)
 
     @staticmethod
     def path_seperator():
