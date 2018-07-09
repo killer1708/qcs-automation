@@ -27,6 +27,6 @@ e.g.
 - cd qcs-automation/
 - export PYTHONPATH=`pwd`:$PYTHONPATH
 
-For permanantly adding the directory in PYTHONPATH, please add following line to '.bashrc'
+For permanently adding the directory in PYTHONPATH, please add following line to '.bashrc'
 - export PYTHONPATH=/root/qcs-automation:$PYTHONPATH
 
