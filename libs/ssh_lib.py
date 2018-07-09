@@ -1,3 +1,4 @@
+import os
 import paramiko
 import pexpect
 import time
@@ -36,6 +37,27 @@ class SshConn(object):
             self._init_connection()
         ssh_stdin, ssh_stdout, ssh_stderr = self.conn.exec_command(cmd)
         return ssh_stdin, ssh_stdout.read().splitlines(), ssh_stderr.read().splitlines()
+
+    def copy_command(self, localpath, remotepath):
+        """
+        copy file to remote server
+        :param localpath: local path of the file
+        :param remotepath: path where file should get copied
+        """
+        try:
+            if not self.conn:
+                self._init_connection()
+            sftp = self.conn.open_sftp()
+            try:
+                print(sftp.stat(remotepath))
+                print('file exists')
+            except IOError:
+                print('copying file')
+                sftp.put(localpath, os.path.abspath(remotepath))
+            sftp.close()
+        except paramiko.SSHException:
+            print("Connection Error")
+
 
 if __name__ == '__main__':
     conn = SshConn('192.168.102.13', 'root', 'master#123')

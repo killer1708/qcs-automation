@@ -234,6 +234,191 @@ def clean_and_backup_ip_server(records_file):
     except IOError as e:
         pass
 
+def vm_add_disk(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd, datastore, vm_name, disk_name):
+    """
+    """
+    
+    # This example will connect to the server and attach a disk to an existing
+    # virtual machine.
+    logging.basicConfig(level=logging.DEBUG, filename='example.log')
+
+    # Create the connection to the server:
+    conn = sdk.Connection(
+        url='https://{}/ovirt-engine/api'.format(ovirt_engine_ip),
+        username=ov_engine_uname,
+        password=ov_engine_passwd,
+        # ca_file='ca.pem',
+        insecure=True,
+        debug=True,
+        log=logging.getLogger(),
+    )
+    connection = conn
+
+    # Locate the virtual machines service and use it to find the virtual
+    # machine:
+    vms_service = connection.system_service().vms_service()
+    vm = vms_service.list(search='name=%s'%vm_name)[0]
+
+    # Locate the service that manages the disk attachments of the virtual
+    # machine:
+    disk_attachments_service = vms_service.vm_service(vm.id).disk_attachments_service()
+
+    # Use the "add" method of the disk attachments service to add the disk.
+    # Note that the size of the disk, the `provisioned_size` attribute, is
+    # specified in bytes, so to create a disk of 10 GiB the value should
+    # be 10 * 2^30.
+    disk_attachment = disk_attachments_service.add(
+        types.DiskAttachment(
+            disk=types.Disk(
+                name='%s'%disk_name,
+                description='%s'%disk_name,
+                format=types.DiskFormat.COW,
+                provisioned_size=10 * 2**30,
+                storage_domains=[
+                    types.StorageDomain(
+                       name='%s'%datastore,
+                    ),
+                ],
+            ),
+            interface=types.DiskInterface.VIRTIO,
+            bootable=False,
+            active=True,
+        ),
+    )
+
+    # Wait till the disk is OK:
+    disks_service = connection.system_service().disks_service()
+    disk_service = disks_service.disk_service(disk_attachment.disk.id)
+    while True:
+        time.sleep(5)
+        disk = disk_service.get()
+        if disk.status == types.DiskStatus.OK:
+            break
+
+    # Close the connection to the server:
+    connection.close()
+
+def remove_vm(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd, vm_name):
+    logging.basicConfig(level=logging.DEBUG, filename='example.log')
+
+    # This example will connect to the server, search for a VM by name and
+    # remove it:
+
+    # Create the connection to the server:
+    conn = sdk.Connection(
+        url='https://{}/ovirt-engine/api'.format(ovirt_engine_ip),
+        username=ov_engine_uname,
+        password=ov_engine_passwd,
+        # ca_file='ca.pem',
+        insecure=True,
+        debug=True,
+        log=logging.getLogger(),
+    )
+    connection = conn
+    # Find the service that manages VMs:
+    vms_service = connection.system_service().vms_service()
+
+    # Find the VM:
+    vm = vms_service.list(search='name=%s'%vm_name)[0]
+
+    # Note that the "vm" variable that we assigned above contains only the
+    # data of the VM, it doesn't have any method like "remove". Methods are
+    # defined in the services. So now that we have the description of the VM
+    # we can find the service that manages it, calling the locator method
+    # "vm_service" defined in the "vms" service. This locator method
+    # receives as parameter the identifier of the VM and retursn a reference
+    # to the service that manages that VM.
+    vm_service = vms_service.vm_service(vm.id)
+
+    # Now that we have the reference to the service that manages the VM we
+    # can use it to remove the VM. Note that this method doesn't need any
+    # parameter, as the identifier of the VM is already known by the service
+    # that we located in the previous step.
+    vm_service.remove()
+
+    # Close the connection to the server:
+    connection.close()
+
+def stop_vm(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd, vm_name):
+    logging.basicConfig(level=logging.DEBUG, filename='example.log')
+
+    # This example will connect to the server, search for a VM by name and
+    # remove it:
+
+    # Create the connection to the server:
+    conn = sdk.Connection(
+        url='https://{}/ovirt-engine/api'.format(ovirt_engine_ip),
+        username=ov_engine_uname,
+        password=ov_engine_passwd,
+        # ca_file='ca.pem',
+        insecure=True,
+        debug=True,
+        log=logging.getLogger(),
+    )
+    connection = conn
+
+    # Get the reference to the "vms" service:
+    vms_service = connection.system_service().vms_service()
+
+    # Find the virtual machine:
+    vm = vms_service.list(search='name=%s'%vm_name)[0]
+
+    # Locate the service that manages the virtual machine, as that is where
+    # the action methods are defined:
+    vm_service = vms_service.vm_service(vm.id)
+
+    # Call the "stop" method of the service to stop it:
+    vm_service.stop()
+
+    # Wait till the virtual machine is down:
+    while True:
+        time.sleep(5)
+        vm = vm_service.get()
+        if vm.status == types.VmStatus.DOWN:
+            break
+
+    # Close the connection to the server:
+    connection.close()
+
+def search_vm(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd, vm_name):
+    logging.basicConfig(level=logging.DEBUG, filename='example.log')
+
+    # This example will connect to the server, search for a VM by name and
+    # remove it:
+
+    # Create the connection to the server:
+    conn = sdk.Connection(
+        url='https://{}/ovirt-engine/api'.format(ovirt_engine_ip),
+        username=ov_engine_uname,
+        password=ov_engine_passwd,
+        # ca_file='ca.pem',
+        insecure=True,
+        debug=True,
+        log=logging.getLogger(),
+    )
+    connection = conn
+
+    # Get the reference to the "vms" service:
+    vms_service = connection.system_service().vms_service()
+
+    # Use the "list" method of the "vms" service to search the virtual
+    # machines that match a search query:
+    vms = vms_service.list(
+        search='name=%s'%vm_name,
+        case_sensitive=False,
+    )
+
+    # Note that the format of the search query is the same that is supported
+    # by the GUI search bar.
+
+    # Print the virtual machine names and identifiers:
+    for vm in vms:
+        print('%s: %s' % (vm.name, vm.id))
+
+    # Close the connection to the server:
+    connection.close()
+    return vms
+
 if __name__ == '__main__':
     # add_dc('dc_service', '', 'My data center', False, 4, 0)
     # add_cluster('cl_service', '', 'My cluster', 'Intel Family', 'mydc')

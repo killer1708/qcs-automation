@@ -3,7 +3,7 @@ import subprocess
 import config
 
 from nodes.node import Linux
-from libs.ovirt_engine import create_vm_from_template, get_vm_ip
+from libs.ovirt_engine import create_vm_from_template, get_vm_ip, search_vm, stop_vm, remove_vm
 from libs.vdb_config import create_config
 
 NFS_SERVER = '192.168.102.13'
@@ -76,15 +76,17 @@ def check_firewalld(master_node):
     """
     Check firewall status,if its running then stop
     """
-    command = "firewall-cmd --state"
-    _, stdout, stderr = master_node.ssh_conn.execute_command(command)
-    if b"not" in stderr[0]:
-        print("Firewall not running ...")
-    else:
-        command = "systemctl stop firewalld"
-        _, stdout, stderr = master_node.ssh_conn.execute_command(command)
-        print("Warning : Firewall is stopped, please start the firewall\
-               once execution is complete...")
+    try:
+        _, stdout, stderr = master_node.ssh_conn.execute_command("firewall-cmd --state")
+        if stderr and b"not" in stderr[0]:
+            print("Firewall not running ...")
+        else:
+            command = "systemctl stop firewalld"
+            _, stdout, stderr = master_node.ssh_conn.execute_command(command)
+            print("Warning : Firewall is stopped, please start the firewall\
+                   once execution is complete...")
+    except Exception as e:
+        print("Something goes wrong")
 
 def configure_master(master_node, slave_nodes):
     """
@@ -107,13 +109,26 @@ def get_master_ip():
 
 def main():
     """
+    """
+    for i in range(config.SLAVE_VM_COUNT):
+        #search if vm is already present
+        data = search_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+            config.OVIRT_ENGINE_PASS, (config.VM_NAME+str(i)))
+        if data:
+            #stop the vm
+            stop_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+                config.OVIRT_ENGINE_PASS, (config.VM_NAME+str(i)))
+            #remove vm
+            remove_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+                config.OVIRT_ENGINE_PASS, (config.VM_NAME+str(i)))
+
     vms = create_vm_from_template(
             config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
             config.OVIRT_ENGINE_PASS, config.CLUSTER_NAME, config.TEMPLATE_NAME,
             config.TEMPLATE_DS, config.VM_NAME, vm_count=config.SLAVE_VM_COUNT)
-    """
-    # vms = get_vm_ip()
-    vms = ['192.168.105.56', '192.168.105.57']
+
+    #vms = get_vm_ip()
+    #vms = ['192.168.105.19']
 
     print(vms)
     linux_node = []
@@ -129,7 +144,8 @@ def main():
                                  hostname=vms)
     print(vdbench_conf)
     print(vdbench_exe)
-    vdbench_cmd = '{} -f {}'.format(vdbench_exe, vdbench_conf)
+    vdbench_output = "/root/automation/qcs-automation/tools/qcsbench/vdbench/output"
+    vdbench_cmd = '{} -f {} -o {}'.format(vdbench_exe, vdbench_conf, vdbench_output)
     print(vdbench_cmd)
     stdin, res, error = master_node.ssh_conn.execute_command(vdbench_cmd)
 
