@@ -3,7 +3,7 @@ import subprocess
 import config
 
 from nodes.node import Linux
-from libs.ovirt_engine import create_vm_from_template, get_vm_ip
+from libs.ovirt_engine import create_vm_from_template, get_vm_ip, search_vm, stop_vm, remove_vm
 from libs.vdb_config import create_config
 
 NFS_SERVER = '192.168.102.13'
@@ -110,7 +110,6 @@ def get_master_ip():
 def main():
     """
     """
-
     for i in range(config.SLAVE_VM_COUNT):
         #search if vm is already present
         data = search_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
@@ -127,8 +126,9 @@ def main():
             config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
             config.OVIRT_ENGINE_PASS, config.CLUSTER_NAME, config.TEMPLATE_NAME,
             config.TEMPLATE_DS, config.VM_NAME, vm_count=config.SLAVE_VM_COUNT)
-    # vms = get_vm_ip()
-    #vms = ['192.168.105.56', '192.168.105.57']
+
+    #vms = get_vm_ip()
+    #vms = ['192.168.105.19']
 
     print(vms)
     linux_node = []
@@ -144,7 +144,8 @@ def main():
                                  hostname=vms)
     print(vdbench_conf)
     print(vdbench_exe)
-    vdbench_cmd = '{} -f {}'.format(vdbench_exe, vdbench_conf)
+    vdbench_output = "/root/automation/qcs-automation/tools/qcsbench/vdbench/output"
+    vdbench_cmd = '{} -f {} -o {}'.format(vdbench_exe, vdbench_conf, vdbench_output)
     print(vdbench_cmd)
     stdin, res, error = master_node.ssh_conn.execute_command(vdbench_cmd)
 

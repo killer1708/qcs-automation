@@ -119,7 +119,7 @@ def create_vm_from_template(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd,
     """
 
     logging.basicConfig(level=logging.DEBUG, filename='example.log')
-    #clean_and_backup_ip_server(VM_IP_RECORDS)
+    clean_and_backup_ip_server(VM_IP_RECORDS)
 
     # Create the connection to the server:
     conn = sdk.Connection(
@@ -213,8 +213,8 @@ def create_vm_from_template(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd,
                 break
 
     connection.close()
-    #vm_ips = get_vm_ip(VM_IP_RECORDS)
-    return None#vm_ips
+    vm_ips = get_vm_ip(VM_IP_RECORDS)
+    return vm_ips
 
 
 def clean_and_backup_ip_server(records_file):

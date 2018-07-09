@@ -27,10 +27,12 @@ def start_iometer(master, slave_nodes):
     Start Dynamo on slave nodes and iometer on client node
     """
     for slave_vms in slave_nodes:
-         conn.copy_command(config.LOCAL_PATH, config.REMOTE_PATH)
-         conn.execute_command('chmod +x %s' %config.REMOTE_PATH)
+         slave_vms.ssh_conn.copy_command(config.LOCAL_PATH, config.REMOTE_PATH)
+         slave_vms.ssh_conn.execute_command('chmod +x %s' %config.REMOTE_PATH)
          _, stdout, stderr = master_node.ssh_conn.execute_command("nohup /root/dynamo -i {}\
                                             -m {} > /dev/null 2>&1 &\n"%(master, slave_vms))
+         master_node.ssh_conn.copy_command("/root/automation/qcs-automation/tools/qcsbench/iometer/test_iometer.icf",\
+         "C:\\Users\\Administrator\\Desktop")
          print("Dynamo start on client {}".format(slave_vms)) 
 
     #start iometer on master node
@@ -38,13 +40,31 @@ def start_iometer(master, slave_nodes):
 
 def configuration_file(slave_nodes):
     """
-    Add the number slave client and disk to configuration file.
+    Add the number of slave client and disk to configuration file.
     """
     for slave_vms in slave_nodes:
          _, stdout, stderr = slave_vms.ssh_conn.execute_command("lsblk -d -n -oNAME | awk {'print $1'}")
-         print(stdout,slave_vms.ip)
- 
-
+         for i in stdout:
+             if not b"sda" or b"sr0" in i:
+                 disk = i.decode(encoding='UTF-8',errors='strict')
+                 print(disk)
+         flag = False
+         with open("iometer.icf") as fd:
+             with open("test_iometer.icf", "w") as fd1:
+                 for line in fd:
+                     if line.startswith("\'Manager network address"):
+                         fd1.write(line)
+                         flag = True
+                         data = slave_vms.ip + "\n"
+                     elif line.endswith("\'Target\n"):
+                         fd1.write(line)
+                         flag = True
+                         data = disk + "\n"
+                     elif flag:
+                         fd1.write(data)
+                         flag = False
+                     else:
+                         fd1.write(line)
 def main():
     """
     """
@@ -76,16 +96,15 @@ def main():
         ln = Linux(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
         check_firewalld(ln)
         linux_node.append(ln)
-    #master_node = Linux(config.IOMETER_SERVER, config.IOMETER_UNAME, config.IOMETER_PASSWD)
+    master_node = Linux(config.IOMETER_SERVER, config.IOMETER_UNAME, config.IOMETER_PASSWD)
     '''
     for i in range(config.SLAVE_VM_COUNT): 
         vm_add_disk(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
             config.OVIRT_ENGINE_PASS, config.TEMPLATE_DS, (config.VM_NAME+str(i)), config.DISK_NAME)
 
     '''
-    #configure iometer.icf file
     configuration_file(linux_node)
-    #start_iometer(master_node, linux_node)
+    start_iometer(master_node, linux_node)
 
 main()
 

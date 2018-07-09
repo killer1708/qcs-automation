@@ -27,5 +27,5 @@ REMOTE_PATH = '/root/dynamo'
 
 IOMETER_SERVER = '192.168.102.85'
 IOMETER_UNAME = 'administrator'
-IOMETER_PASSWO = 'master@123'
+IOMETER_PASSWD = 'master@123'
 

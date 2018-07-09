@@ -1,3 +1,4 @@
+import os
 import paramiko
 import pexpect
 import time
@@ -59,6 +60,5 @@ class SshConn(object):
 
 
 if __name__ == '__main__':
-    try:
-        conn = SshConn('192.168.102.13', 'root', 'master#123')
-        print (conn.execute_command('echo y | ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""'))
+    conn = SshConn('192.168.102.13', 'root', 'master#123')
+    print (conn.execute_command('echo y | ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""'))
