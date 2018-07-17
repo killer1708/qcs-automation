@@ -18,7 +18,7 @@ OVIRT_ENGINE_PASS = 'master@123'
 CLUSTER_NAME = 'QCSCL'
 
 #centos template 
-TEMPLATE_NAME = 'automation-template'
+TEMPLATE_NAME = 'automation_template2'
 
 #template data storage
 TEMPLATE_DS = 'DATA_DOMAIN'

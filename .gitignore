@@ -1,0 +1,4 @@
+*.pyc
+*.swp
+tools/qcsbench/vdbench/output/*
+tools/qcsbench/iometer/output/*

@@ -105,7 +105,6 @@ def get_vm_ip(qnap_vm_file):
     except IOError as e:
         pass
 
-
 def create_vm_from_template(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd,
                             cluster_name, template_name, template_datastore,
                             vm_name=None, vm_count=1):
@@ -213,9 +212,16 @@ def create_vm_from_template(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd,
                 break
 
     connection.close()
-    vm_ips = get_vm_ip(VM_IP_RECORDS)
-    return vm_ips
 
+    max_tries = 60
+    wait_secs = 5
+    for count in range(0, max_tries):
+        vm_ips = get_vm_ip(VM_IP_RECORDS)
+        if not vm_ips:
+            time.sleep(wait_secs)
+        else:
+            return vm_ips
+    return None
 
 def clean_and_backup_ip_server(records_file):
     """
@@ -422,5 +428,7 @@ def search_vm(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd, vm_name):
 if __name__ == '__main__':
     # add_dc('dc_service', '', 'My data center', False, 4, 0)
     # add_cluster('cl_service', '', 'My cluster', 'Intel Family', 'mydc')
-    create_vm_from_template(config.CLUSTER_NAME, config.TEMPLATE_NAME,
-                            config.TEMPLATE_DS, 'automation-vm-test')
+    #create_vm_from_template(config.CLUSTER_NAME, config.TEMPLATE_NAME,
+    #                        config.TEMPLATE_DS, 'automation-vm-test')
+    
+    print(get_vm_ip("/qnap-vm.txt"))

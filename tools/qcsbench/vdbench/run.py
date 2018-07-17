@@ -1,3 +1,4 @@
+import sys
 import time
 import subprocess
 import config
@@ -114,6 +115,7 @@ def main():
         #search if vm is already present
         data = search_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
             config.OVIRT_ENGINE_PASS, (config.VM_NAME+str(i)))
+    
         if data:
             #stop the vm
             stop_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
@@ -129,7 +131,9 @@ def main():
 
     #vms = get_vm_ip()
     #vms = ['192.168.105.19']
-
+    if not vms:
+        print("Not getting vm ip")
+        sys.exit()
     print(vms)
     linux_node = []
     for vm in vms:
@@ -144,9 +148,9 @@ def main():
                                  hostname=vms)
     print(vdbench_conf)
     print(vdbench_exe)
-    vdbench_output = "/root/automation/qcs-automation/tools/qcsbench/vdbench/output"
+    vdbench_output = "/root/automation/new/qcs-automation/tools/qcsbench/vdbench/output"
     vdbench_cmd = '{} -f {} -o {}'.format(vdbench_exe, vdbench_conf, vdbench_output)
     print(vdbench_cmd)
     stdin, res, error = master_node.ssh_conn.execute_command(vdbench_cmd)
-
 main()
+
