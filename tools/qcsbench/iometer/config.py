@@ -13,7 +13,7 @@ OVIRT_ENGINE_PASS = 'master@123'
 CLUSTER_NAME='QCSCL'
 
 #automation template name
-TEMPLATE_NAME='automation-template'
+TEMPLATE_NAME='automation_template2'
 
 # ovirt storage name
 TEMPLATE_DS='DATA_DOMAIN'
@@ -41,17 +41,27 @@ DISK_NAME='disk_name'
 #master vm user name
 MASTER_UNAME='root'
 #master vm password
-MASTER_PASSWD='master#123'
+MASTER_PASSWD='master@123'
 
-#path where dynamo is located
+#dynamo path from copy
 LOCAL_PATH = 'dynamo'
-#slave vm path where dynamo to be copied
+#dynamo path to copy on remote machine
 REMOTE_PATH = '/root/dynamo'
 
+#iometer server credential
 #iometer server ip
 IOMETER_SERVER = '192.168.102.85'
 #iometer server user name
 IOMETER_UNAME = 'administrator'
 #iometer server password
 IOMETER_PASSWD = 'master@123'
+
+#iometer exe location
+IOMETER_SDK = "C:\\Users\\Administrator\\Desktop\\iometer_sdk\\"
+#iometer config file path
+IOMETER_CONFIG_FILE = "/root/automation/new/qcs-automation/tools/qcsbench/iometer/test_iometer.icf"
+#IOMETER output dir
+IOMETER_OUTPUT_DIR = "/root/automation/new/qcs-automation/tools/qcsbench/iometer/output/"
+#IOMeter result file name
+IOMETER_RESULT_FILE_NAME = "result.csv"
 

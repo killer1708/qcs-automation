@@ -197,7 +197,7 @@ Version 1.1.0
 'END access specifications
 'MANAGER LIST ==================================================================
 'Manager ID, manager name
-	1,localhost.localdomain
+	1,master_vm
 'Manager network address
 	192.168.56.102
 'Worker

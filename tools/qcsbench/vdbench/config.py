@@ -12,7 +12,7 @@ OVIRT_ENGINE_PASS = 'master@123'
 CLUSTER_NAME='QCSCL'
 
 #vm template name in ovirt
-TEMPLATE_NAME='automation-template'
+TEMPLATE_NAME='automation_template2'
 
 #template data domain
 TEMPLATE_DS='DATA_DOMAIN'
