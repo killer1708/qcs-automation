@@ -66,7 +66,7 @@ def start_iometer(master, slave_nodes, server):
 
     #start iometer on master node
     _, stdout, stderr = master.ssh_conn.execute_command("cmd \/c {0}IOmeter.exe \
-                        /c {0}test_iometer.csv /r {0}result.csv".format(config.IOMETER_SDK))   
+                        /c {0}test_iometer.icf /r {0}result.csv".format(config.IOMETER_SDK))   
     #copy result file into output dir
     _, stdout, stderr = master.ssh_conn.execute_command("cmd \/c echo y | pscp.exe -pw {1} \
                         {3}result.csv root@{0}:{2}".format(server, config.MASTER_PASSWD,\
