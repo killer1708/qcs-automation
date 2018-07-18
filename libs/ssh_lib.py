@@ -66,8 +66,8 @@ class SshConn(object):
             print("Connection Error")
 
 if __name__ == '__main__':
-    conn = SshConn('192.168.105.20', 'root', 'master@123')
     '''
+    conn = SshConn('192.168.105.20', 'root', 'master@123')
     _, stdout, stderr = conn.execute_command("lsblk -d -n -oNAME | awk {'print $1'}")
     print(stdout, stderr)
     for i in stdout:
@@ -78,12 +78,12 @@ if __name__ == '__main__':
              else:
                  disk = i.decode(encoding='UTF-8',errors='strict')
                  print("disk=", disk)
-    
+    '''
     conn = SshConn('192.168.102.85', 'administrator', 'master@123')
     #_, stdout, stderr = conn.execute_command('echo y | ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""'))
-    _, stdout, stderr = conn.execute_command('cmd \/c dir')
-    _, stdout, stderr = conn.execute_command('cmd \/c echo y | pscp.exe -pw master@123 \
-                        root@192.168.105.122:/root/automation/qcs-automation/libs/test.py test.py ')
+    _, stdout, stderr = conn.execute_command("cmd \/c IOmeter.exe /c test_iometer.icf /r result.csv")
+    #_, stdout, stderr = conn.execute_command('cmd \/c echo y | pscp.exe -pw master@123 \
+    #                    root@192.168.105.122:/root/automation/qcs-automation/libs/test.py test.py ')
     print(stdout, stderr)
     '''
     try:
@@ -98,4 +98,5 @@ if __name__ == '__main__':
                    once execution is complete...")
     except Exception as e:
         print("Something goes wrong",str(e))
+    '''
     
