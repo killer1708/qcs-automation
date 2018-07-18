@@ -57,7 +57,7 @@ def push_key_to_slave(master_node, slave_vms):
     """
     command = 'cat /root/.ssh/id_rsa.pub'
     _, stdout, stderr = master_node.ssh_conn.execute_command(command)
-    key_data = stdout[0]
+    key_data = stdout[0].decode(encoding='UTF-8',errors='strict')
     for slave_node in slave_vms:
         command = 'echo {} >> /root/.ssh/authorized_keys'.format(key_data)
         _, stdout, stderr = slave_node.ssh_conn.execute_command(command)
@@ -66,11 +66,8 @@ def generate_key(master_node):
     """
     Genrate key
     """
-    if key_is_present(master_node):
-        print("A key is already present.")
-    else:
-        # Genarate private key
-        master_node.ssh_conn.execute_command(
+    # Genarate private key
+    master_node.ssh_conn.execute_command(
                         'echo y | ssh-keygen -t rsa -f /root/.ssh/id_rsa -q -P ""')
 
 def check_firewalld(master_node):
@@ -95,11 +92,13 @@ def configure_master(master_node, slave_nodes):
     password less authentication.
     """
     check_firewalld(master_node)
+    '''
     if key_is_present(master_node):
         push_key_to_slave(master_node, slave_nodes)
     else:
-        generate_key(master_node)
-        push_key_to_slave(master_node, slave_nodes)
+    '''
+    generate_key(master_node)
+    push_key_to_slave(master_node, slave_nodes)
 
 
 def get_master_ip():

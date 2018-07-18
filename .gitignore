@@ -1,4 +1,6 @@
 *.pyc
 *.swp
+example.log
+test_iometer.icf
 tools/qcsbench/vdbench/output/*
 tools/qcsbench/iometer/output/*
