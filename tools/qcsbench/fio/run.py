@@ -2,6 +2,7 @@ import sys
 import time
 import subprocess
 import config
+import configparser
 
 from nodes.node import Linux
 from libs.ovirt_engine import create_vm_from_template, get_vm_ip, \
@@ -46,14 +47,14 @@ def start_fio(slave_nodes, server):
          # install fio on clinet
          slave_vms.deploy('fio')
          # check if fio directory and config already exists
-         slave_vms.ssh_conn.copy_command("[ -d /root/fio ] || mkdir /root/fio")
-         slave_vms.ssh_conn.copy_command("[-f /root/fio/test_fio.fio ] && rm -rf /root/fio/test_fio.fio")
-         slave_vms.ssh_conn.copy_command("[-f /root/fio/result.txt ] && rm -rf /root/fio/result.txt")
+         slave_vms.ssh_conn.execute_command("[ -d /root/fio ] || mkdir /root/fio")
+         slave_vms.ssh_conn.execute_command("[-f /root/fio/test_fio.fio ] && rm -rf /root/fio/test_fio.fio")
+         slave_vms.ssh_conn.execute_command("[-f /root/fio/result.txt ] && rm -rf /root/fio/result.txt")
          #copy fio config  on slave machine
          slave_vms.ssh_conn.copy_command("test_fio.fio", "/root/fio/test_fio.fio")
 
          #start dynamo on slave machine
-         _, stdout, stderr = slave_vms.ssh_conn.execute_command("fio fiosample.fio --output=/root/fio/result.txt")
+         _, stdout, stderr = slave_vms.ssh_conn.execute_command("fio /root/fio/test_fio.fio --output=/root/fio/result.txt")
          print(stdout)
 
     return None
@@ -67,14 +68,14 @@ def configuration_file(slave_nodes):
     """
     for slave_vms in slave_nodes:
         #get disk name from slave
-        _, stdout, stderr = slave_vms.ssh_conn.execute_command("ls /dev/sd*[a-z]")
+        _, stdout, stderr = slave_vms.ssh_conn.execute_command("ls /dev/[a-z]d[a-z]")
         disk = ""
         print(stdout, stderr)
 
         config = configparser.RawConfigParser()
         config.add_section('Global')
         config.set('Global', 'blocksize', '128k')
-        config.set('Global', 'readwrite', 'write')
+        #config.set('Global', 'readwrite', 'write')
         config.set('Global', 'size', '512mb')
         config.set('Global', 'log_avg_msec', '5000')
         config.set('Global', 'iodepth', '16')
@@ -82,12 +83,12 @@ def configuration_file(slave_nodes):
         config.set('Global', 'direct', '0')
         config.set('Global', 'runtime', '120')
         for dev in stdout:
-             if b"/dev/sda" in i:
+             if b"/dev/sda" in dev:
                  pass
-             elif b"/dev/sr0" in i:
+             elif b"/dev/sr0" in dev:
                  pass
              else:
-                disk = i.decode(encoding='UTF-8',errors='strict')
+                disk = dev.decode(encoding='UTF-8',errors='strict')
                 print("disk=", disk)
                 sec = 'job_' + disk
                 config.add_section(sec)
@@ -103,6 +104,7 @@ def configuration_file(slave_nodes):
 def main():
     """
     """
+    
     for i in range(config.SLAVE_VM_COUNT):
         #search if vm is already present
         data = search_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
@@ -120,9 +122,9 @@ def main():
             config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
             config.OVIRT_ENGINE_PASS, config.CLUSTER_NAME, config.TEMPLATE_NAME,
             config.TEMPLATE_DS, config.VM_NAME, vm_count=config.SLAVE_VM_COUNT)
-
+    
     # vms = get_vm_ip()
-    #vms = ['192.168.105.18']
+    #vms = ['192.168.105.114']
     if not vms:
         print("Not getting vm ip")
         sys.exit()
@@ -135,16 +137,14 @@ def main():
         check_firewalld(ln)
         linux_node.append(ln)
     
-    master_node = Linux(config.IOMETER_SERVER, config.IOMETER_UNAME, config.IOMETER_PASSWD)
-    
     #add disk to vm
     for i in range(config.SLAVE_VM_COUNT): 
         vm_add_disk(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
             config.OVIRT_ENGINE_PASS, config.TEMPLATE_DS, (config.VM_NAME+str(i)), config.DISK_NAME)
-
+    
     configuration_file(linux_node)
     this_server = get_master_ip()
-    start_iometer(linux_node, this_server)    
+    start_fio(linux_node, this_server)    
 main()
 
 

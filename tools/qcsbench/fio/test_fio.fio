@@ -1,0 +1,15 @@
+[Global]
+blocksize = 128k
+size = 512mb
+log_avg_msec = 5000
+iodepth = 16
+numjobs = 3
+direct = 0
+runtime = 120
+
+[job_/dev/vda]
+filename = /dev/vda
+write_bw_log = job_/dev/vda
+write_lat_log = job_/dev/vda
+write_iops_log = job_/dev/vda
+

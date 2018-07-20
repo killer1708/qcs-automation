@@ -17,7 +17,7 @@ export PYCURL_SSL_LIBRARY=nss
 4. pip3.5 install TestLink-API-Python-client
 5. pip3.5 install pycurl 
 5. pip3.5 install ovirt-engine-sdk-python
-
+6. pip3.5 install configparser
 Master node should have the source repository under /root/
 
 Repo path : git@192.168.102.15:alok.thakur/qcs-automation.git

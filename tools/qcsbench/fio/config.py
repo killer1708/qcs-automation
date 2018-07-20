@@ -19,7 +19,7 @@ TEMPLATE_NAME='automation_template2'
 TEMPLATE_DS='DATA_DOMAIN'
 
 #vm name for creating vm on ovirt
-VM_NAME='qcs_vm_io'
+VM_NAME='qcs_vm_fio'
 
 #slave vm details
 #number of vm to create
@@ -46,22 +46,5 @@ MASTER_PASSWD='master@123'
 #dynamo path from copy
 LOCAL_PATH = 'test_fio.fio'
 #dynamo path to copy on remote machine
-REMOTE_PATH = '/root/dynamo'
-
-#iometer server credential
-#iometer server ip
-IOMETER_SERVER = '192.168.102.85'
-#iometer server user name
-IOMETER_UNAME = 'administrator'
-#iometer server password
-IOMETER_PASSWD = 'master@123'
-
-#iometer exe location
-IOMETER_SDK = "C:\\Users\\Administrator\\Desktop\\iometer_sdk\\"
-#iometer config file path
-IOMETER_CONFIG_FILE = "/root/automation/new/qcs-automation/tools/qcsbench/iometer/test_iometer.icf"
-#IOMETER output dir
-IOMETER_OUTPUT_DIR = "/root/automation/new/qcs-automation/tools/qcsbench/iometer/output/"
-#IOMeter result file name
-IOMETER_RESULT_FILE_NAME = "result.csv"
+REMOTE_PATH = '/root/fio'
 
