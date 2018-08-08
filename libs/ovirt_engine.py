@@ -3,6 +3,7 @@
 import logging
 import time
 import spur
+import re
 import libs.config as config
 
 import ovirtsdk4 as sdk
@@ -90,20 +91,37 @@ def add_host(hosts_service, host_name, description, address, root_password, clus
         track_status(host_service, types.HostStatus.UP, 1)
 
 
-def get_vm_ip(qnap_vm_file):
+def get_vm_ip(connection, vm_name='qcs_vm0'):
     """
     Connect to server and return the IP's by reading the file
     :param qnap_vm_file: FTP file name
     :return: list of IP's
     """
+    # Get the reference to the "vms" service:
+    vms_service = connection.system_service().vms_service()
+
+    # Find the virtual machine:
     try:
-        ssh_shell = spur.SshShell(FTP_SERVER, username=FTP_USERNAME,
-                                  password=FTP_PASSWORD,
-				  missing_host_key=spur.ssh.MissingHostKey.accept)
-        with ssh_shell.open(qnap_vm_file, 'r') as remote:
-            return remote.read().splitlines()
-    except IOError as e:
-        pass
+        vm = vms_service.list(search='name=' + str(vm_name))[0]
+    except Exception as e:
+        print(" Error while searching VM {}".format(vm_name), e)
+        sys.exit()
+
+    # Locate the service that manages the virtual machine, as that is where
+    # the action methods are defined:
+    vm_service = vms_service.vm_service(vm.id)
+    # Get devices list
+    reported_devices = vm_service.reported_devices_service().list()
+
+    all_address = []
+    for device in reported_devices:
+        for ip in device.ips:
+            all_address.append(ip.address)
+            #print(ip.address)
+
+    for ip in all_address:
+        if re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$", ip):
+            return ip
 
 def create_vm_from_template(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd,
                             cluster_name, template_name, template_datastore,
@@ -211,17 +229,12 @@ def create_vm_from_template(ovirt_engine_ip, ov_engine_uname, ov_engine_passwd,
                     continue
                 break
 
-    connection.close()
+    vm_ips = list()
+    for vm in range(vm_count):
+        vm_ips.append(get_vm_ip(connection, vm_name=vm_name + str(vm)))
 
-    max_tries = 60
-    wait_secs = 5
-    for count in range(0, max_tries):
-        vm_ips = get_vm_ip(VM_IP_RECORDS)
-        if not vm_ips:
-            time.sleep(wait_secs)
-        else:
-            return vm_ips
-    return None
+    connection.close()
+    return vm_ips
 
 def clean_and_backup_ip_server(records_file):
     """

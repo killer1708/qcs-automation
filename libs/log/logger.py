@@ -13,30 +13,33 @@ class Log:
     """
     Singleton class to create log object
     """
-    log = None
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super().__new__(cls)
+        return cls.instance
 
-    def __init__(self):
-        if self.__class__.log is None:
-            self._initialise()
-
-    def _initialise(self):
-        level = 'DEBUG'
+    def initialise(self, logfile, level='DEBUG'):
         logger = logging.getLogger('qcs')
+        logger.propagate = True
         logger.setLevel(level)
         
         # create stream handler
+        fh = logging.StreamHandler(open(logfile, "w"))
         sh = logging.StreamHandler(sys.stdout)
         
         # create formatter
         formatter = logging.Formatter(
-                    '%(asctime)s %(levelname)s %(funcName)s %(message)s')
+                    '%(asctime)s %(levelname)s %(message)s')
         
         # add formatter to sh
+        fh.setFormatter(formatter)
         sh.setFormatter(formatter)
     
         # add sh to logger
         logger.addHandler(sh)
+        logger.addHandler(fh)
         self.logger = logger
+        return self.logger
 
     def __repr__(self):
         return "{}()".format(self.__class__.__name__)

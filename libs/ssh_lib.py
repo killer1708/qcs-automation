@@ -1,7 +1,23 @@
+#!/usr/bin/env python
+"""
+ssh_lib.py: Establishes ssh connection to host
+"""
+
+# from python lib
 import os
 import paramiko
 import pexpect
 import time
+
+# from external lib
+from scp import SCPClient
+
+# from qcs-automation libs
+from libs.log.logger import Log
+
+# create log object
+log = Log()
+
 
 class SshConn(object):
     def __init__(self, ip, user, password):
@@ -39,10 +55,41 @@ class SshConn(object):
                 cmd = ' '.join(arg for arg in cmd)
             if not self.conn:
                 self._init_connection()
-            ssh_stdin, ssh_stdout, ssh_stderr = self.conn.exec_command(cmd)
-            return ssh_stdin, ssh_stdout.read().splitlines(), ssh_stderr.read().splitlines()
+            log.debug("Executing command: {} on {}".format(cmd,
+                      self.ip_address))
+            stdin, stdout, stderr = self.conn.exec_command(cmd)
+            try:
+                stdoutbuffer = stdout.read()
+            except Exception as e:
+                stdout = str(e)
+    
+            try:
+                stderrbuffer = stderr.read()
+            except Exception as e:
+                stderr = str(e)
+    
+            try:
+                if not isinstance(stdout, str):
+                    status = stdout.channel.recv_exit_status()
+                else:
+                    status = None
+            except Exception as e:
+                status = str(e)
+    
+            if not isinstance(stdout, str):
+                stdout = stdoutbuffer.decode('utf8')
+            if not isinstance(stderr, str):
+                stderr = stderrbuffer.decode('utf8')
+    
+            return (status, stdout.splitlines(), stderr.splitlines())
         except Exception as e:
-            print("Unable to connect remote server")
+            print("Unable to connect remote server {}".format(self.ip_address))
+            print(e)
+            if 'SSH session not active' in str(e):
+                print("Restablising connection on {}".format(self.ip_address))
+                # re-establish connection and execute the command
+                self._init_connection()
+                self.execute_command(cmd)
             return None, None, None
 
     def copy_command(self, localpath, remotepath):
@@ -64,6 +111,34 @@ class SshConn(object):
             sftp.close()
         except paramiko.SSHException:
             print("Connection Error")
+
+    def scp_get(self, *, remotepath, localpath, recursive=False):
+        """
+        Scp files/dir from SSH server
+        """
+        scp = SCPClient(self.conn.get_transport())
+        try:
+            scp.get(remotepath, localpath, recursive, preserve_times=True)
+        except Exception as e:
+            log.info("Hit exception while scp_get from {} to {} on {}".format(
+                     remotepath, localpath, self.ip_address))
+            log.info(e)
+            raise
+        return True
+
+    def scp_put(self, *, localpath, remotepath, recursive=False):
+        """
+        Scp files/dir to SSH server
+        """
+        scp = SCPClient(self.conn.get_transport())
+        try:
+            scp.put(localpath, remotepath, recursive)
+        except Exception as e:
+            log.info("Hit exception while scp_put from {} to {} on {}".format(
+                     localpath, remotepath, self.ip_address))
+            log.info(e)
+            raise
+        return True
 
 if __name__ == '__main__':
     '''
