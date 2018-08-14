@@ -33,26 +33,26 @@ class Linux(Node):
         self.ip = ip
         self.user = user
         self.password = password
-        self.ssh_conn = SshConn(self.ip, self.user, self.password)
+        self.conn = SshConn(self.ip, self.user, self.password)
         self.host_type = 'linux'
         self.disks = list()
 
     def __str__(self):
-        return "{}".format(self.ssh_conn.ip_address)
+        return "{}".format(self.conn.ip_address)
 
     @staticmethod
-    def path_seperator():
+    def path_separator():
         return "/"
 
     def _get_disk_list(self):
         disks = list()
         # issue lsscsi to list all devices
         cmd = "lsscsi | awk '{print $NF}'"
-        status, lsscsi_out, stderr = self.ssh_conn.execute_command(cmd)
+        status, lsscsi_out, stderr = self.conn.execute_command(cmd)
 
         # skip boot and cdrom drive
         cmd = "mount | grep -i boot | awk '{print $1}'"
-        status, stdout, stderr = self.ssh_conn.execute_command(cmd)
+        status, stdout, stderr = self.conn.execute_command(cmd)
         skip_disks = [stdout[0][:-1], '/dev/sr0', '/dev/sr1', '/dev/sr2']
 
         # collect useful disks
@@ -70,7 +70,7 @@ class Linux(Node):
     def change_hostname(self):
         new_name = "slave_{}".format(str(self).split('.')[-1])
         cmd = "hostnamectl set-hostname {}".format(new_name)
-        status, stdout, stderr = self.ssh_conn.execute_command(cmd)
+        status, stdout, stderr = self.conn.execute_command(cmd)
         if status:
             log.info(stdout)
             log.error(error)
@@ -87,7 +87,7 @@ class Linux(Node):
 
     def deploy(self, pkg):
         cmd = ['yum', 'install', pkg, '-y']
-        self.ssh_conn.execute_command(cmd)
+        self.conn.execute_command(cmd)
 
     def walk(self, dir_name):
         dir_queue = [dir_name]
@@ -95,7 +95,7 @@ class Linux(Node):
             _dir = dir_queue.pop()
             sub_dir = []
             files = []
-            _, ls_lrt, error = self.ssh_conn.execute_command(['ls', '-lrt', _dir])
+            _, ls_lrt, error = self.conn.execute_command(['ls', '-lrt', _dir])
             if not error:
                 # 1st entry would be count of dir and files in given folder
                 ls_lrt = ls_lrt[1:]
@@ -108,17 +108,29 @@ class Linux(Node):
                 yield (_dir, sub_dir, files)
 
     def is_path_exists(self, path):
-        _, _, error = self.ssh_conn.execute_command(['ls', path])
+        _, _, error = self.conn.execute_command(['ls', path])
         if error:
             return False
         else:
             return True
 
     def makedir(self, dir_name):
-        self.ssh_conn.execute_command(['mkdir', '-p', dir_name])
+        self.conn.execute_command(['mkdir', '-p', dir_name])
 
     def restart(self):
         raise NotImplementedError
+
+    def create_file_system_on_disks(self):
+        """
+        Create file system on all avaliable disks
+        :return None
+        """
+        self.filesystem_locations = list()
+        self.disks = ["dummy_disk"]
+        for disk in self.disks:
+            # partition the disk
+            # create file system on disk
+            self.filesystem_locations.append("/dir")
 
 
 if __name__ == '__main__':
