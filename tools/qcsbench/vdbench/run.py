@@ -212,23 +212,20 @@ def generate_paramfile(load_type, hosts, conf):
             hd_params = "hd={},system={}".format(str(host), str(host))
             newconf.append(hd_params)
 
-            # terminate if no disk found for a host
-            if not host.filesystem_locations:
-                log.info("Disks are: {}".format(host.disks))
+            # terminate if no destination location found for host
+            if not host.mount_locations:
+                log.info("Mount locations are {}".format(host.mount_locations))
                 raise Exception("No filestsem location found for host {}"\
                                 .format(str(host)))
-            for fs in host.filesystem_locations:
+            for fs in host.mount_locations:
                 if conf.get('fsd_params'):
                     temp = []
                     for key, value in conf['fsd_params'].items():
                         temp.append("{}={}".format(key, value))
                     params = "fsd=fsd_{},anchor={},{}".format(
-                              i, "{}{}dir_{}".format(
-                              fs, host.path_separator(), i), ','.join(temp))
+                              i, fs, ','.join(temp))
                 else:
-                    params = "fsd=fsd_{},anchor={}".format(
-                              i, "{}{}dir_{}".format(
-                              fs, host.path_separator(), i))
+                    params = "fsd=fsd_{},anchor={}".format(i, fs)
                 fsd_params.append(params)
                 # increment i
                 i += 1
@@ -353,7 +350,23 @@ def main():
         host.change_hostname()
         if config.LOAD_TYPE == 'file_io':
             host.create_file_system_on_disks()
-    log.info("Disks are: {}".format(host.disk_list))
+            log.info("Filesystem locations available are - {}"\
+                     .format(host.filesystem_locations))
+            for i, location in enumerate(host.filesystem_locations):
+                mount_point = "/mnt/loc{}".format(i)
+                host.makedir(mount_point)
+                # mount formatted device on host system
+                cmd = "mount {} {}".format(location, mount_point)
+                status, stdout, _ = host.conn.execute_command(cmd)
+                if status:
+                    log.info(stdout)
+                    log.error("Unable to mount {} on {}"\
+                              .format(location, mount_point))
+                # append to mountpoints
+                host.mount_locations.append(mount_point)
+            log.info("Filesystem mount locations are {}"\
+                     .format(host.mount_locations))
+        log.info("Disks are: {}".format(host.disk_list))
 
     log.info("Configure master host and copy master ssh keys to all slaves")
     configure_master_host(master_host, host_list)

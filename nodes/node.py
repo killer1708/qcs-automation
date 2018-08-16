@@ -1,6 +1,17 @@
+#!/usr/bin/env python
+"""
+node.py:
+"""
+
+# from python lib
 from abc import ABCMeta, abstractmethod
 
+# from qcs automation libs
 from libs.ssh_lib import SshConn
+from libs.log.logger import Log
+
+# create log object
+log = Log()
 
 
 class Node(object):
@@ -36,6 +47,7 @@ class Linux(Node):
         self.conn = SshConn(self.ip, self.user, self.password)
         self.host_type = 'linux'
         self.disks = list()
+        self.mount_locations = list()
 
     def __str__(self):
         return "{}".format(self.conn.ip_address)
@@ -126,11 +138,47 @@ class Linux(Node):
         :return None
         """
         self.filesystem_locations = list()
-        self.disks = ["dummy_disk"]
         for disk in self.disks:
+            # Check if disk is already partinoned
+            cmd = "parted -l | grep Error"
+            _, _, stderr = self.conn.execute_command(cmd)
+            for line in stderr:
+                if disk in line:
+                    log.info("Disk {} is not partioned.".format(disk))
+                    break
+            else:
+                log.error("Disk {} already have partitons on it.".format(disk))
+
+            # choose the partitioning standard
+            cmd = "parted {} mklabel gpt".format(disk)
+            _, _, _ = self.conn.execute_command(cmd)
+
             # partition the disk
+            cmd = "parted -a opt {} mkpart primary ext4 0% 100%".format(disk)
+            status, stdout, stderr = self.conn.execute_command(cmd)
+            if status:
+                log.info(stdout)
+                raise Exception("Unable to create ext4 partition on disk {}"\
+                                .format(disk))
+
+            # get the partition
+            cmd = "lsblk -l -oNAME {}".format(disk)
+            _, stdout, _ = self.conn.execute_command(cmd)
+
+            # remove header and device name
+            stdout.pop(0)
+            stdout.pop(0)
+            partition_name = "/dev/{}".format(stdout[0])
+
             # create file system on disk
-            self.filesystem_locations.append("/dir")
+            cmd = "mkfs.ext4 -L Data {}".format(partition_name)
+            status, stdout, _ = self.conn.execute_command(cmd)
+            if status:
+                log.info(stdout)
+                raise Exception("Unable to create file system on partition {}"\
+                                .format(partition_name))
+            # append to available file system list
+            self.filesystem_locations.append(partition_name)
 
 
 if __name__ == '__main__':

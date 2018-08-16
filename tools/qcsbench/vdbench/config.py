@@ -54,22 +54,22 @@ WORKLOAD_INFO =  {
                                 "iorate" : "max"}
                  }
 # file io details
-#LOAD_TYPE = 'file_io'
-#WORKLOAD_INFO =  {
-#                  "fsd_params": {"depth": "1",
-#                                 "width": "1",
-#                                 "files": "3",
-#                                 "size": "1g"},
-#                  "fwd_params": {"operation": "write",
-#                                 "fileio": "sequential",
-#                                 "fileselect": "sequential",
-#                                 "threads": "1",
-#                                 "xfersize": "32k"},
-#                  "rd_params":  {"elapsed": "10",
-#                                 "fwdrate": "max",
-#                                 "maxdata": "1g",
-#                                 "format": "yes"}
-#                 }
+LOAD_TYPE = 'file_io'
+WORKLOAD_INFO =  {
+                  "fsd_params": {"depth": "1",
+                                 "width": "1",
+                                 "files": "3",
+                                 "size": "1g"},
+                  "fwd_params": {"operation": "write",
+                                 "fileio": "sequential",
+                                 "fileselect": "sequential",
+                                 "threads": "1",
+                                 "xfersize": "32k"},
+                  "rd_params":  {"elapsed": "10",
+                                 "fwdrate": "max",
+                                 "maxdata": "1g",
+                                 "format": "yes"}
+                 }
 
 # verify data integrity - True|False
 DATA_VALIDATION = False
