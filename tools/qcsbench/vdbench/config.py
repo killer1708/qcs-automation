@@ -41,7 +41,9 @@ USERNAME = 'root'
 PASSWORD = 'master#123'
 
 # specify load details
-# LOAD_TYPE possible values are - block_io and file_io
+# LOAD_TYPE possible values are - block_io|file_io.
+# At a given instant, there could be only one LOAD_TYPE and
+# corresponding WORKLOAD_INFO.
 LOAD_TYPE = 'block_io'
 # block io details
 WORKLOAD_INFO =  {

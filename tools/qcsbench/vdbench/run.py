@@ -206,8 +206,8 @@ def generate_paramfile(load_type, hosts, conf):
         newconf.append("hd=default,shell=ssh,user=root,vdbench={}"\
                        .format(VDBENCH_EXE_LOC)) 
         i = 1
-        fsd_params = []
         for host in hosts:
+            host.fsd_params = []
             # add hd params
             hd_params = "hd={},system={}".format(str(host), str(host))
             newconf.append(hd_params)
@@ -226,25 +226,27 @@ def generate_paramfile(load_type, hosts, conf):
                               i, fs, ','.join(temp))
                 else:
                     params = "fsd=fsd_{},anchor={}".format(i, fs)
-                fsd_params.append(params)
+                host.fsd_params.append(params)
                 # increment i
                 i += 1
             # filesystem_locations for loop ends here
 
         fwd_params = []
-        h = 0
-        for fsd_line in fsd_params:
-            fsd = fsd_line.split(',')[0].split('=')[1]
-            if conf.get('fwd_params'):
-                temp = []
-                for key, value in conf['fwd_params'].items():
-                    temp.append("{}={}".format(key, value))
-                params = "fwd=fwd_{},fsd={},host={},{}"\
-                         .format(fsd, fsd, str(hosts[h]), ','.join(temp))
-            else:
-                params = "fwd=fwd_{},fsd={},host={}".format(fsd, fsd, str(hosts[h]))
-            fwd_params.append(params)
-            h += 1
+        for host in hosts:
+            for fsd_line in host.fsd_params:
+                fsd = fsd_line.split(',')[0].split('=')[1]
+                if conf.get('fwd_params'):
+                    temp = []
+                    for key, value in conf['fwd_params'].items():
+                        temp.append("{}={}".format(key, value))
+                    params = "fwd=fwd_{},fsd={},host={},{}"\
+                             .format(fsd, fsd, str(host), ','.join(temp))
+                else:
+                    params = "fwd=fwd_{},fsd={},host={}"\
+                             .format(fsd, fsd, str(host))
+                fwd_params.append(params)
+            # inner for loop ends here
+        # outer for loop ends here
 
         if conf.get('rd_params'):
             temp = []
@@ -256,6 +258,9 @@ def generate_paramfile(load_type, hosts, conf):
         rd_params = [params]
 
         # add all params
+        fsd_params = list()
+        for host in hosts:
+            fsd_params.extend(host.fsd_params)
         all_params = fsd_params + fwd_params + rd_params
         newconf.extend(all_params)
 
@@ -281,8 +286,8 @@ def main():
         os.makedirs(log_dir)
     logfile = os.path.join(log_dir, "vdbench_stdout.log")
     log.initialise(logfile, config.LOG_LEVEL)
-    print("Logs will be collected in '{}' directory".format(log_dir))
-    print("logfile: {}".format(logfile))
+    log.info("Logs will be collected in '{}' directory".format(log_dir))
+    log.info("logfile: {}".format(logfile))
 
     ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
                         config.OVIRT_ENGINE_PASS)
@@ -416,6 +421,7 @@ def main():
     log.info("Collected vdbench logs into {}".format(log_dir))
 
     # Cleanup paramfile from master host
+    ovirt.close_connection()
     log.info("Cleaning up paramfile on master host")
     cmd = "rm -f {}".format(paramfile)
     _, _, _ = master_host.conn.execute_command(cmd)
