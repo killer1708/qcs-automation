@@ -215,11 +215,6 @@ Version 1.1.0
 	4 KiB; 75% Read; 0% random
 'End assigned access specs
 'Target assignments
-'Target
-	sdc
-'Target type
-	DISK
-'End target
 'End target assignments
 'End worker
 'End manager

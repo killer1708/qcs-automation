@@ -180,6 +180,27 @@ class Linux(Node):
             # append to available file system list
             self.filesystem_locations.append(partition_name)
 
+        def execute_cmd_in_background(self, log_path="/dev/null"):
+            """
+            Start the given command in background and return pid
+            :param cmd - The command line to execute
+            :param log_path - Optional log path for stdout/stderr redirection
+            :return pid of background process
+            """
+            cmd = "{{ {} &>{} & }}; echo $!".format(cmd, log_path)
+            log.debug("Starting background command: {}".format(cmd))
+            status, stdout, stderr = self.conn.execute(cmd=cmd)
+            if status != 0:
+                log.error("failed to start command: {}".format(cmd))
+                log.error("stdout: {}".format(stdout))
+                log.error("stderr: {}".format(stderr))
+                raise Exception("failed to start command in background")
+            pid = int(stdout[0])
+            if pid is None or pid < 2:
+                raise Exception("Got nexpected pid: {}".format(pid))
+            log.info("background command pid: {}".format(pid))
+            return pid
+
 
 if __name__ == '__main__':
     ln = Linux('192.168.102.14', 'root', 'master#123')
