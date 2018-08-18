@@ -125,6 +125,27 @@ class SshConn(object):
             raise
         return True
 
+    def copy_command(self, localpath, remotepath):
+        """
+        copy file to remote server
+        :param localpath: local path of the file
+        :param remotepath: path where file should get copied
+        """
+        try:
+            if not self.conn:
+                self._init_connection()
+            sftp = self.conn.open_sftp()
+            try:
+                log.info(sftp.stat(remotepath))
+                log.info("File exists {}".format(remotepath))
+            except IOError:
+                log.info("Copying file {} to {}".format(localpath, remotepath))
+                sftp.put(localpath, os.path.abspath(remotepath))
+            sftp.close()
+        except paramiko.SSHException as e:
+            log.error("Connection Error: {}".format(e))
+
+
 if __name__ == '__main__':
     print("Module loaded successfully.")
 
