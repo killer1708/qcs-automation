@@ -1,0 +1,21 @@
+Prerequisite:
+-------------
+ - activate your virtual environment (having python3.5 and other modules in
+   it). other modules can be installed from qcs_framework's repo
+   requirements.txt as: pip install -r requirements.txt 
+ - cd to qcs-automation directory
+ - add PYTHONPATH details by sourcing env.sh
+
+Usage:
+------
+ - cd to tools/qcsbench/vdbench directory
+ - update necessary details for executing vdbench in config.py
+ - start vdbench: python run.py
+ - execution details will be dispalyed on screen and also preserved in LOG_DIR
+   specified in config.py
+ - suppose you executed with LOG_DIR = 'output', then after execution you
+   will find below file and directory under 'output' created
+    vdbench_stdout.log 192.168.105.157
+   vdbench_stdout.log - log displayed on screen
+   192.168.105.157 - this ip will be different for you. it's master host ip
+   where vdbench has executed and contains vdbench logs.
