@@ -75,13 +75,15 @@ def start_iometer(master, slave_nodes, current_host_ip, configfile):
                                     config.IOMETER_CONFIG_FILE))
 
     # copy iometer configuration file on iometer server
-    _, stdout, stderr = \
+    status, stdout, stderr = \
         master.conn.execute_command(
         "cmd \/c echo y | pscp.exe -pw {2} {1}@{0}:{3} {4}"\
         .format(current_host_ip, config.CURRENT_UNAME, config.CURRENT_PASSWD,
                 configfile, config.IOMETER_SDK))
-    log.info(stdout)
-    log.info(stderr)
+    if status:
+        log.info(stdout)
+        log.error(stderr)
+        sys.exit(1)
 
     # start iometer on Iometer server
     status, stdout, stderr = \
