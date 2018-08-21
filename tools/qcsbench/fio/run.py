@@ -1,150 +1,214 @@
+#!/usr/bin/env python
+"""
+run.py: Execute fio test as per config.py
+"""
+
+# from python lib
 import sys
 import time
+import os
 import subprocess
-import config
-import configparser
 
+# from qcs-automation libs
+from libs.ovirt_engine import OvirtEngine
+from libs.log.logger import Log
+from tools.qcsbench.fio import config
 from nodes.node import Linux
-from libs.ovirt_engine import create_vm_from_template, get_vm_ip, \
-                       vm_add_disk, remove_vm,search_vm, stop_vm
-from libs.vdb_config import create_config
 
-def check_firewalld(slave_node):
+# create a log object
+if os.environ.get('USE_ROBOT_LOGGER', None) == "True":
+    from libs.log.logger import Log
+
+    log = Log()
+else:
+    log = Log()
+
+FIO_MOUNT_LOCATION = '/mnt'
+FIO_REMOTE_PATH = "/root/fio/"
+FIO_LOCAL_PATH = "/home/msys/new/qcs-automation/tools/qcsbench/fio/output/"
+FIO_CONF_FILE = "test_fio.fio"
+FIO_RESULT_FILE = "result.txt"
+FIO_LOGS = "/fio/output_dir"
+WIN_FIO_EXE_LOC = "c:\\fio"
+WIN_FIO_LOGS = "c:\\fio\\output_dir"
+
+
+def check_firewalld(host):
     """
     Check firewall status,if its running then stop
     """
     try:
-        _, stdout, stderr = slave_node.ssh_conn.execute_command('ls')
-        print(stdout)
-        _, stdout, stderr = slave_node.ssh_conn.execute_command("firewall-cmd --state")
-        if stderr and b"not" in stderr[0]:
-            print("Firewall not running ...")
+        _, stdout, stderr = host.conn.execute_command("firewall-cmd --state")
+        if stderr and 'not' in stderr[0]:
+            log.info("Firewall is not running")
         else:
-            command = "systemctl stop firewalld"
-            _, stdout, stderr = slave_node.ssh_conn.execute_command(command)
-            print("Warning : Firewall is stopped, please start the firewall\
-                   once execution is complete...")
+            command = 'systemctl stop firewalld'
+            _, stdout, stderr = host.conn.execute_command(command)
+            log.warn("Firewall is stopped, please start the firewall +\
+                      once execution completes")
     except Exception as e:
-        print("Something goes wrong", str(e))
+        print("Something goes wrong")
 
 def get_master_ip():
     """
     Gets IP of current machine
     """
     ip = subprocess.check_output('hostname -I | cut -d\" \" -f 1', shell=True)
-    ip = ip.decode(encoding='UTF-8',errors='strict')
+    ip = ip.decode(encoding='UTF-8', errors='strict')
     return ip.rstrip('\n')
 
-def start_fio(slave_nodes, server):
+def start_fio(host_list):
     """
-    Start fio on slave node
-    :param slave_nodes: ssh connection to slave nodes(linux)
-    :param server: ip of the current machine
-        :return: None
-
+    Start fio on host
+    :param host_list: ssh connection to hosts(linux)
     """
-    for slave_vms in slave_nodes:
-         # install fio on clinet
-         slave_vms.deploy('fio')
-         # check if fio directory and config already exists
-         slave_vms.ssh_conn.execute_command("[ -d /root/fio ] || mkdir /root/fio")
-         slave_vms.ssh_conn.execute_command("[-f /root/fio/test_fio.fio ] && rm -rf /root/fio/test_fio.fio")
-         slave_vms.ssh_conn.execute_command("[-f /root/fio/result.txt ] && rm -rf /root/fio/result.txt")
-         #copy fio config  on slave machine
-         slave_vms.ssh_conn.copy_command("test_fio.fio", "/root/fio/test_fio.fio")
+    for host in host_list:
+        # install fio on host
+        check_firewalld(host)
+        host.deploy('fio')
+        # check if fio directory, result.txt and config file already exists.
+        # then remove it.
+        host.conn.execute_command("[ -d {} ] || mkdir {}".format(
+                                  FIO_REMOTE_PATH, FIO_REMOTE_PATH))
+        host.conn.execute_command("[ -f {}{} ] && rm -rf {}{}".format(
+                                  FIO_REMOTE_PATH, FIO_CONF_FILE,
+                                  FIO_REMOTE_PATH, FIO_CONF_FILE))
+        host.conn.execute_command("[ -f {}{} ] && rm -rf {}{}".format(
+                                  FIO_REMOTE_PATH, FIO_RESULT_FILE,
+                                  FIO_REMOTE_PATH, FIO_RESULT_FILE))
+        # copy fio config file on host machine
+        host.conn.scp_put(localpath="{}".format(FIO_CONF_FILE), remotepath=
+                          "{}{}".format(FIO_REMOTE_PATH, FIO_CONF_FILE))
+        host.refresh_disk_list()
 
-         #start dynamo on slave machine
-         _, stdout, stderr = slave_vms.ssh_conn.execute_command("fio /root/fio/test_fio.fio --output=/root/fio/result.txt")
-         print(stdout)
-
-    return None
-
-def configuration_file(slave_nodes):
-    """
-    Add the number of slave client and disk to configuration file.
-    :param slave_nodes: Command to be executed
-        :return: None
-
-    """
-    for slave_vms in slave_nodes:
-        #get disk name from slave
-        _, stdout, stderr = slave_vms.ssh_conn.execute_command("ls /dev/[a-z]d[a-z]")
-        disk = ""
-        print(stdout, stderr)
-
-        config = configparser.RawConfigParser()
-        config.add_section('Global')
-        config.set('Global', 'blocksize', '128k')
-        #config.set('Global', 'readwrite', 'write')
-        config.set('Global', 'size', '512mb')
-        config.set('Global', 'log_avg_msec', '5000')
-        config.set('Global', 'iodepth', '16')
-        config.set('Global', 'numjobs', '3')
-        config.set('Global', 'direct', '0')
-        config.set('Global', 'runtime', '120')
-        for dev in stdout:
-             if b"/dev/sda" in dev:
-                 pass
-             elif b"/dev/sr0" in dev:
-                 pass
-             else:
-                disk = dev.decode(encoding='UTF-8',errors='strict')
-                print("disk=", disk)
-                sec = 'job_' + disk
-                config.add_section(sec)
-                config.set(sec, 'filename', disk)
-                config.set(sec, 'write_bw_log', 'job_' + disk)
-                config.set(sec, 'write_lat_log', 'job_'+ disk)
-                config.set(sec, 'write_iops_log', 'job_'+ disk)
-
-        with open('test_fio.fio', 'w') as configfile:
-            config.write(configfile)
-    return None
+        host.conn.edit_load_file(host.disk_list, path_load_file="{}{}".format(
+                                 FIO_REMOTE_PATH, FIO_CONF_FILE))
+        log.info("Step 3. Choose file/block IO")
+        if 'block_io' in config.LOAD_TYPE:
+            # start dynamo on host machine
+            log.info("Step 4. Start fio load on raw device.")
+            _, stdout, stderr = host.conn.execute_command("fio {}{} --output="
+                                                          "{}{}".format(
+                                                          FIO_REMOTE_PATH,
+                                                          FIO_CONF_FILE,
+                                                          FIO_REMOTE_PATH,
+                                                          FIO_RESULT_FILE))
+            host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
+                              FIO_RESULT_FILE), localpath="{}{}".format(
+                              FIO_LOCAL_PATH, FIO_RESULT_FILE))
+            log.info(stdout)
+        elif 'file_io' in config.LOAD_TYPE:
+            host.create_file_system_on_disks()
+            log.info("Filesystem locations available are - {}" \
+                     .format(host.filesystem_locations))
+            for i, location in enumerate(host.filesystem_locations):
+                mount_point = "/mnt/loc{}".format(i)
+                host.makedir(mount_point)
+                # mount formatted device on host system
+                cmd = "mount {} {}".format(location, mount_point)
+                status, stdout, _ = host.conn.execute_command(cmd)
+                if status:
+                    log.info(stdout)
+                    log.error("Unable to mount {} on {}" \
+                              .format(location, mount_point))
+                # append to mountpoints
+                host.mount_locations.append(mount_point)
+            log.info("Filesystem mount locations are {}" \
+                     .format(host.mount_locations))
+            log.info("Disks are: {}".format(host.disk_list))
+            log.info("Step 4. Start fio load on file system device.")
+            _, stdout, stderr = host.conn.execute_command("fio {}{} --output="
+                                                          "{}{}".format(
+                                                          FIO_REMOTE_PATH,
+                                                          FIO_CONF_FILE,
+                                                          FIO_REMOTE_PATH,
+                                                          FIO_RESULT_FILE))
+            host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
+                             FIO_RESULT_FILE),localpath="{}{}".format(
+                             FIO_LOCAL_PATH, FIO_RESULT_FILE))
+            log.info(stdout)
 
 def main():
     """
+    Standalone fio execution steps:
+    precondition: update config.py as per need
+    1. create vms
+    2. add disks
+    3. choose file/block IO
+    4. Start fio load in foreground
     """
-    
-    for i in range(config.SLAVE_VM_COUNT):
-        #search if vm is already present
-        data = search_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-            config.OVIRT_ENGINE_PASS, (config.VM_NAME+str(i)))
-        if data:
-            #stop the vm
-            stop_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-                config.OVIRT_ENGINE_PASS, (config.VM_NAME+str(i)))
-            #remove vm
-            remove_vm(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-                config.OVIRT_ENGINE_PASS, (config.VM_NAME+str(i))) 
-    
-    #create vm from template
-    vms = create_vm_from_template(
-            config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-            config.OVIRT_ENGINE_PASS, config.CLUSTER_NAME, config.TEMPLATE_NAME,
-            config.TEMPLATE_DS, config.VM_NAME, vm_count=config.SLAVE_VM_COUNT)
-    
-    # vms = get_vm_ip()
-    #vms = ['192.168.105.114']
-    if not vms:
-        print("Not getting vm ip")
-        sys.exit()
- 
-    print (vms)
-    #create ssh session to vm and stop firewalld 
-    linux_node = []
-    for vm in vms:
-        ln = Linux(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
-        check_firewalld(ln)
-        linux_node.append(ln)
-    
-    #add disk to vm
-    for i in range(config.SLAVE_VM_COUNT): 
-        vm_add_disk(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-            config.OVIRT_ENGINE_PASS, config.TEMPLATE_DS, (config.VM_NAME+str(i)), config.DISK_NAME)
-    
-    configuration_file(linux_node)
-    this_server = get_master_ip()
-    start_fio(linux_node, this_server)    
-main()
+    log_dir = config.LOG_DIR
+    if not os.path.isdir(log_dir):
+        os.makedirs(log_dir)
+    logfile = os.path.join(log_dir, "fio_stdout.log")
+    log.initialise(logfile, config.LOG_LEVEL)
+    print("Logs will be collected in '{}' directory".format(log_dir))
+    print("logfile: {}".format(logfile))
 
+    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+                        config.OVIRT_ENGINE_PASS)
+
+    log.info("Remove existing vms if any")
+    for i in range(config.SLAVE_VM_COUNT):
+        # search if vm is already present
+        vm = ovirt.search_vm(config.VM_NAME + str(i))
+        if vm:
+            # stop the vm
+            ovirt.stop_vm(config.VM_NAME + str(i))
+            # remove vm
+            ovirt.remove_vm(config.VM_NAME + str(i))
+
+    log.info("Step 1. Creating {} VM(s)".format(config.SLAVE_VM_COUNT))
+    vms = list()
+    for i in range(config.SLAVE_VM_COUNT):
+        vm_name = config.VM_NAME + str(i)
+        vm = ovirt.create_vm_from_template(vm_name,
+                                           config.CLUSTER_NAME,
+                                           config.TEMPLATE_NAME,
+                                           config.TEMPLATE_DS)
+        vms.append(vm)
+
+    log.info("Sleeping for 1 minute for vm IP to be available.")
+    time.sleep(60)
+
+    # get vm ips
+    vm_ips = list()
+    for vm in vms:
+        ip = ovirt.get_vm_ip(vm.name)
+        vm_ips.append(ip)
+
+    log.info("VM IPs are: {}".format(vm_ips))
+    if not vm_ips:
+        log.critical("No vm IP found")
+        sys.exit(1)
+
+    log.info("Creating host objects")
+    host_list = list()
+    for vm in vm_ips:
+        if config.HOST_TYPE.lower() == 'linux':
+            host = Linux(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
+        elif config.HOST_TYPE.lower() == 'windows':
+            # host = Windows(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
+            pass
+        else:
+            log.error("Unknown host type - {}".format(config.HOST_TYPE))
+        # update available disks
+        host_list.append(host)
+
+    # Add disks
+    log.info("Step 2. Add disk to VM(s)")
+    for vm in vms:
+        for i in range(config.DISK_COUNT):
+            ovirt.add_disk(vm.name,
+                           "disk_" + str(i),
+                           config.DISK_SIZE_GB,
+                           config.TEMPLATE_DS)
+
+    this_server = get_master_ip()
+    log.info(this_server)
+    start_fio(host_list)
+
+
+if __name__ == '__main__':
+    main()
 

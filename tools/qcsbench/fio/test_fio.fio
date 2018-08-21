@@ -7,9 +7,5 @@ numjobs = 3
 direct = 0
 runtime = 120
 
-[job_/dev/vda]
-filename = /dev/vda
-write_bw_log = job_/dev/vda
-write_lat_log = job_/dev/vda
-write_iops_log = job_/dev/vda
+
 
