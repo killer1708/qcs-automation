@@ -2,7 +2,10 @@ Prerequisite:
 -------------
  - activate your virtual environment (having python3.5 and other modules in
    it). other modules can be installed from qcs_framework's repo
-   requirements.txt as: pip install -r requirements.txt 
+   requirements.txt as: pip install -r requirements.txt
+ - copy vdbench source files under /opt if not already present
+   scp -r root@192.168.102.13:/opt/vdbench /opt
+   192.168.102.13 - is a known Jenkins slave machine
  - cd to qcs-automation directory
  - add PYTHONPATH details by sourcing env.sh
 
