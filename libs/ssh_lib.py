@@ -8,6 +8,7 @@ import os
 import paramiko
 import pexpect
 import time
+import configparser
 
 # from external lib
 from scp import SCPClient
@@ -97,6 +98,33 @@ class SshConn(object):
                 self.execute_command(cmd)
             return None, None, None
 
+    def edit_load_file(self, disks, path_load_file):
+        """
+        Edit the load file of fio according to added disks.
+        param disks: disk names
+        param path_load_file: remote path of load file where it is present.
+        :return:
+        """
+        try:
+            if not self.conn:
+                self._init_connection()
+            for disk in disks:
+                sftp = self.conn.open_sftp()
+                log.info("disk= {} ".format(disk))
+                sec = 'job_' + disk
+                config = configparser.RawConfigParser()
+                config.add_section(sec)
+                config.set(sec, 'filename', disk)
+                config.set(sec, 'write_bw_log', 'job_' + disk)
+                config.set(sec, 'write_lat_log', 'job_'+ disk)
+                config.set(sec, 'write_iops_log', 'job_'+ disk)
+
+                with sftp.open(path_load_file, 'a+') as configfile:
+                    config.write(configfile, space_around_delimiters=False)
+                sftp.close()
+        except paramiko.SSHException:
+            print("Connection Error")
+
     def scp_get(self, *, remotepath, localpath, recursive=False):
         """
         Scp files/dir from SSH server
@@ -148,4 +176,5 @@ class SshConn(object):
 
 if __name__ == '__main__':
     print("Module loaded successfully.")
+
 

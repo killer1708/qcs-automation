@@ -1,50 +1,56 @@
 # Ovirt Engine and host details
+# ovirt server ip
+OVIRT_ENGINE_IP = '192.168.105.161'
 
-#ovirt server ip
-OVIRT_ENGINE_IP = '192.168.103.65'
-
-#ovirt server name
+# ovirt user name
 OVIRT_ENGINE_UNAME = 'admin@internal'
 
-#ovirt server password
-OVIRT_ENGINE_PASS = 'master@123'
+# ovirt password
+OVIRT_ENGINE_PASS = 'admin'
 
-#ovirt cluster nMW
-CLUSTER_NAME='QCSCL'
+# ovirt cluster name
+CLUSTER_NAME='Default'
 
-#automation template name
-TEMPLATE_NAME='automation_template2'
+# vm template name in ovirt
+TEMPLATE_NAME='automation_template_for_qcsbench_tool'
 
-# ovirt storage name
-TEMPLATE_DS='DATA_DOMAIN'
+# template data domain
+TEMPLATE_DS='ovirt_data'
 
-#vm name for creating vm on ovirt
-VM_NAME='qcs_vm_fio'
+# name of the vm to be created
+VM_NAME='qcs_fio_vm'
 
-#slave vm details
-#number of vm to create
+# slave vm details
+# number vm to be create
 SLAVE_VM_COUNT=1
-
-#vm user name
+# slave vm type: linux|windows
+HOST_TYPE = 'linux'
+# vm user name
 SLAVE_UNAME='root'
+# vm password
+SLAVE_PASSWORD='master#123'
 
-#vm password
-SLAVE_PASSWORD='master@123'
+# disk details
+DISK_COUNT = 1
+DISK_SIZE_GB = 50
 
-#ADD Disk
-#number of disk to add
-DISK_COUNT=1
-#disk name
-DISK_NAME='disk_name'
+# Current system details
+# system user name
+USERNAME = 'root'
+# system password
+PASSWORD = 'master#123'
 
-# Master vm details
-#master vm user name
-MASTER_UNAME='root'
-#master vm password
-MASTER_PASSWD='master@123'
+# specify load details
+# LOAD_TYPE possible values are - block_io and file_io
+LOAD_TYPE = 'block_io'
+# block io details
 
-#dynamo path from copy
-LOCAL_PATH = 'test_fio.fio'
-#dynamo path to copy on remote machine
-REMOTE_PATH = '/root/fio'
+# verify data integrity - True|False
+DATA_VALIDATION = False
+
+# log level
+LOG_LEVEL = "DEBUG"
+
+# log directory name
+LOG_DIR = "output"
 
