@@ -19,10 +19,8 @@ from nodes.node import Linux
 if os.environ.get('USE_ROBOT_LOGGER', None) == "True":
     from libs.log.logger import Log
     log = Log()
-    log.intialise('example.log', 'DEBUG')
 else:
     log = Log()
-
 
 FIO_REMOTE_PATH = "/root/fio/"
 WIN_FIO_EXE_LOC = "c:\\fio"
@@ -84,10 +82,15 @@ def start_fio(host_list):
         if 'block_io' in config.LOAD_TYPE:
             # start dynamo on host machine
             log.info("Step 4. Start fio load on raw device.")
-            _, stdout, stderr = host.conn.execute_command("fio {}{} --output="
+            status, stdout, stderr = host.conn.execute_command("fio {}{} --output="
                                 "{}{}".format(FIO_REMOTE_PATH,
                                 config.FIO_CONF_FILE, FIO_REMOTE_PATH,
                                 config.FIO_RESULT_FILE))
+            if status:
+                log.info(stdout)
+                log.error(stderr)
+            else:
+                log.info("VDBench completed successfully.")
             log_dir = config.LOG_DIR
             log_dir = os.path.join(log_dir)
             if not os.path.isdir(log_dir):
@@ -124,6 +127,11 @@ def start_fio(host_list):
                                 "{}{}".format(FIO_REMOTE_PATH,
                                 config.FIO_CONF_FILE, FIO_REMOTE_PATH,
                                 config.FIO_RESULT_FILE))
+            if status:
+                log.info(stdout)
+                log.error(stderr)
+            else:
+                log.info("FIO completed successfully.")
             log_dir = config.LOG_DIR
             log_dir = os.path.join(log_dir)
             if not os.path.isdir(log_dir):
@@ -220,5 +228,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
