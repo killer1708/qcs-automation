@@ -1,0 +1,21 @@
+Prerequisite:
+-------------
+ - activate your virtual environment (having python3.5 and other modules in
+   it). other modules can be installed from qcs_framework's repo
+   requirements.txt as: pip install -r requirements.txt
+ - cd to qcs-automation directory
+ - add PYTHONPATH details by sourcing env.sh
+
+Usage:
+------
+ - cd to tools/qcsbench/fio directory
+ - update necessary details for executing fio in config.py
+ - start fio: python3.5 run.py
+ - execution details will be dispalyed on screen and also preserved in LOG_DIR
+   specified in config.py
+ - suppose you executed with LOG_DIR = 'output', then after execution you
+   will find below files under 'output' created
+    fio_stdout.log result.txt
+   fio_stdout.log - log displayed on screen
+  
+  

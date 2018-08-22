@@ -18,19 +18,13 @@ from nodes.node import Linux
 # create a log object
 if os.environ.get('USE_ROBOT_LOGGER', None) == "True":
     from libs.log.logger import Log
-
     log = Log()
 else:
     log = Log()
 
-FIO_MOUNT_LOCATION = '/mnt'
 FIO_REMOTE_PATH = "/root/fio/"
-FIO_LOCAL_PATH = "/home/msys/new/qcs-automation/tools/qcsbench/fio/output/"
-FIO_CONF_FILE = "test_fio.fio"
-FIO_RESULT_FILE = "result.txt"
-FIO_LOGS = "/fio/output_dir"
 WIN_FIO_EXE_LOC = "c:\\fio"
-WIN_FIO_LOGS = "c:\\fio\\output_dir"
+WIN_FIO_LOGS = "c:\\fio\\output"
 
 
 def check_firewalld(host):
@@ -71,31 +65,43 @@ def start_fio(host_list):
         host.conn.execute_command("[ -d {} ] || mkdir {}".format(
                                   FIO_REMOTE_PATH, FIO_REMOTE_PATH))
         host.conn.execute_command("[ -f {}{} ] && rm -rf {}{}".format(
-                                  FIO_REMOTE_PATH, FIO_CONF_FILE,
-                                  FIO_REMOTE_PATH, FIO_CONF_FILE))
+                                  FIO_REMOTE_PATH, config.FIO_CONF_FILE,
+                                  FIO_REMOTE_PATH, config.FIO_CONF_FILE))
         host.conn.execute_command("[ -f {}{} ] && rm -rf {}{}".format(
-                                  FIO_REMOTE_PATH, FIO_RESULT_FILE,
-                                  FIO_REMOTE_PATH, FIO_RESULT_FILE))
+                                  FIO_REMOTE_PATH, config.FIO_RESULT_FILE,
+                                  FIO_REMOTE_PATH, config.FIO_RESULT_FILE))
         # copy fio config file on host machine
-        host.conn.scp_put(localpath="{}".format(FIO_CONF_FILE), remotepath=
-                          "{}{}".format(FIO_REMOTE_PATH, FIO_CONF_FILE))
+        host.conn.scp_put(localpath="{}".format(config.FIO_CONF_FILE),
+                          remotepath="{}{}".format(FIO_REMOTE_PATH,
+                          config.FIO_CONF_FILE))
         host.refresh_disk_list()
 
         host.conn.edit_load_file(host.disk_list, path_load_file="{}{}".format(
-                                 FIO_REMOTE_PATH, FIO_CONF_FILE))
+                                 FIO_REMOTE_PATH, config.FIO_CONF_FILE))
         log.info("Step 3. Choose file/block IO")
         if 'block_io' in config.LOAD_TYPE:
             # start dynamo on host machine
             log.info("Step 4. Start fio load on raw device.")
-            _, stdout, stderr = host.conn.execute_command("fio {}{} --output="
-                                                          "{}{}".format(
-                                                          FIO_REMOTE_PATH,
-                                                          FIO_CONF_FILE,
-                                                          FIO_REMOTE_PATH,
-                                                          FIO_RESULT_FILE))
+            status, stdout, stderr = host.conn.execute_command("fio {}{} --output="
+                                "{}{}".format(FIO_REMOTE_PATH,
+                                config.FIO_CONF_FILE, FIO_REMOTE_PATH,
+                                config.FIO_RESULT_FILE))
+            if status:
+                log.info(stdout)
+                log.error(stderr)
+            else:
+                log.info("FIO completed successfully.")
+            log_dir = config.LOG_DIR
+            log_dir = os.path.join(log_dir)
+            if not os.path.isdir(log_dir):
+                os.makedirs(log_dir)
+            res_file = os.path.join(log_dir, "{}".format(
+                                    config.FIO_RESULT_FILE))
+            log.info("Fio logs will be collected in '{}' directory".format(
+                     log_dir))
+            log.info("res_file: {}".format(res_file))
             host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
-                              FIO_RESULT_FILE), localpath="{}{}".format(
-                              FIO_LOCAL_PATH, FIO_RESULT_FILE))
+                              config.FIO_RESULT_FILE), localpath=res_file)
             log.info(stdout)
         elif 'file_io' in config.LOAD_TYPE:
             host.create_file_system_on_disks()
@@ -117,15 +123,26 @@ def start_fio(host_list):
                      .format(host.mount_locations))
             log.info("Disks are: {}".format(host.disk_list))
             log.info("Step 4. Start fio load on file system device.")
-            _, stdout, stderr = host.conn.execute_command("fio {}{} --output="
-                                                          "{}{}".format(
-                                                          FIO_REMOTE_PATH,
-                                                          FIO_CONF_FILE,
-                                                          FIO_REMOTE_PATH,
-                                                          FIO_RESULT_FILE))
+            status, stdout, stderr = host.conn.execute_command("fio {}{} --output="
+                                "{}{}".format(FIO_REMOTE_PATH,
+                                config.FIO_CONF_FILE, FIO_REMOTE_PATH,
+                                config.FIO_RESULT_FILE))
+            if status:
+                log.info(stdout)
+                log.error(stderr)
+            else:
+                log.info("FIO completed successfully.")
+            log_dir = config.LOG_DIR
+            log_dir = os.path.join(log_dir)
+            if not os.path.isdir(log_dir):
+                os.makedirs(log_dir)
+            res_file = os.path.join(log_dir, "{}".format(
+                                    config.FIO_RESULT_FILE))
+            log.info("Fio logs will be collected in '{}' directory".format(
+                     log_dir))
+            log.info("res_file: {}".format(res_file))
             host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
-                             FIO_RESULT_FILE),localpath="{}{}".format(
-                             FIO_LOCAL_PATH, FIO_RESULT_FILE))
+                              config.FIO_RESULT_FILE), localpath=res_file)
             log.info(stdout)
 
 def main():
@@ -142,8 +159,8 @@ def main():
         os.makedirs(log_dir)
     logfile = os.path.join(log_dir, "fio_stdout.log")
     log.initialise(logfile, config.LOG_LEVEL)
-    print("Logs will be collected in '{}' directory".format(log_dir))
-    print("logfile: {}".format(logfile))
+    log.info("Logs will be collected in '{}' directory".format(log_dir))
+    log.info("logfile: {}".format(logfile))
 
     ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
                         config.OVIRT_ENGINE_PASS)
