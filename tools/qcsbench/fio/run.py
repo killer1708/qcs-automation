@@ -123,7 +123,7 @@ def start_fio(host_list):
                      .format(host.mount_locations))
             log.info("Disks are: {}".format(host.disk_list))
             log.info("Step 4. Start fio load on file system device.")
-            _, stdout, stderr = host.conn.execute_command("fio {}{} --output="
+            status, stdout, stderr = host.conn.execute_command("fio {}{} --output="
                                 "{}{}".format(FIO_REMOTE_PATH,
                                 config.FIO_CONF_FILE, FIO_REMOTE_PATH,
                                 config.FIO_RESULT_FILE))
