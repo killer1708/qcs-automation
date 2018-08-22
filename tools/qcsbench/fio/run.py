@@ -90,7 +90,7 @@ def start_fio(host_list):
                 log.info(stdout)
                 log.error(stderr)
             else:
-                log.info("VDBench completed successfully.")
+                log.info("FIO completed successfully.")
             log_dir = config.LOG_DIR
             log_dir = os.path.join(log_dir)
             if not os.path.isdir(log_dir):
