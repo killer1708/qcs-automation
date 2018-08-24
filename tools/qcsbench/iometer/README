@@ -1,17 +1,33 @@
-README Before running iometer
------------------------------------
-Requrements:
-- Windows 8 and above
-- Centos7
+Prerequisite:
+-------------
+ - configure IOMETER server
+   1. Requrement:
+      - Windows 8 and above
+   2. Configuration:
+      - create windows vm with user administrator and password master@123
+      - Install IOmeter and dynamo in
+        C:\Users\Administrator\Desktop\iometer_sdk directory
+      - Instal pscp.exe in Desktip directory
+      - Disable the firewall
+      - install freesshd and start the service on port 22 create user
+        administrator and password master@123 for freesshd server
+ - activate your virtual environment (having python3.5 and other modules in
+   it). other modules can be installed from qcs_framework's repo
+   requirements.txt as: pip install -r requirements.txt
+ - cd to qcs-automation directory
+ - add PYTHONPATH details by sourcing env.sh
 
-
-Configuration:
-- create windows vm with user administrator and password master@123
-- Install IOmeter and dynamo in C:\Users\Administrator\Desktop\iometer_sdk directory
-- Instal pscp.exe in Desktip directory
-- Disable the firewall
-- install freesshd and start the service on port 22 create user administrator 
-  and password master@123 for freesshd server
- 
-========================================================================================== 
-
+Usage:
+------
+ - cd to tools/qcsbench/iometer directory
+ - update necessary details for executing iometer in config.py
+ - start iometer: python run.py
+ - execution details will be dispalyed on screen and also preserved in LOG_DIR
+   specified in config.py
+ - suppose you executed with LOG_DIR = 'output', then after execution you
+   will find below file and directory under 'output' created
+    iometer_stdout.log  result.csv  test_iometer.icf
+   iometer_stdout.log - log displayed on screen
+   result.csv - iometer output/result statistics
+   test_iometer.icf - run time config file used
+   where iometer has executed and contains logs.

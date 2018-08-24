@@ -17,5 +17,4 @@ Usage:
    will find below files under 'output' created
     fio_stdout.log result.txt
    fio_stdout.log - log displayed on screen
-  
-  
+   result.txt - fio result statistics
