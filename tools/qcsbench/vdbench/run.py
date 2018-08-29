@@ -318,12 +318,13 @@ def main():
     # get vm ips
     vm_ips = list()
     for vm in vms:
-         ip = ovirt.get_vm_ip(vm.name)
-         vm_ips.append(ip)
+        ip = ovirt.get_vm_ip(vm.name)
+        if ip:
+            vm_ips.append(ip)
+        else:
+            log.critical("No IP found for host {}".format(vm.name))
+            sys.exit(1)
     log.info("VM IPs are: {}".format(vm_ips))
-    if not vm_ips:
-        log.critical("No vm IP found")
-        sys.exit(1)
 
     log.info("Creating host objects") 
     host_list = list()
