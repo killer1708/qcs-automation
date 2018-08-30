@@ -1,11 +1,18 @@
-[Global]
-blocksize = 128k
-size = 512mb
-log_avg_msec = 5000
-iodepth = 16
-numjobs = 3
-direct = 0
-runtime = 120
-
+[global]
+ioengine=libaio
+rw=randwrite
+lockfile=readwrite
+blocksize=64k
+size=500m
+log_avg_msec=5000
+iodepth=32
+numjobs=1
+runtime=120
+verify=md5
+verify_dump=1
+verify_interval=512
+do_verify=1
+continue_on_error=verify
+direct=1
 
 
