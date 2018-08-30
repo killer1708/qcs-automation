@@ -31,7 +31,7 @@ SLAVE_PASSWORD='master#123'
 # slave vm host type, possible values - linux|windows
 HOST_TYPE = 'linux'
 # load type on slave vms, possible values - block_io|file_io
-# TODO:
+# TODO: for file_io
 LOAD_TYPE = 'block_io'
 
 # ADD Disk details

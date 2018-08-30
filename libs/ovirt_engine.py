@@ -15,7 +15,6 @@ import ovirtsdk4 as sdk
 import ovirtsdk4.types as types
 
 # from qcs-atomation libs
-import libs.config as config
 from libs.log.logger import Log
 
 log = Log()
