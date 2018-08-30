@@ -27,7 +27,7 @@ WIN_FIO_EXE_LOC = "c:\\fio"
 WIN_FIO_LOGS = "c:\\fio\\output"
 
 
-def check_firewalld(host):
+def check_firewall(host):
     """
     Check firewall status,if its running then stop
     """
@@ -58,7 +58,7 @@ def start_fio(host_list):
     """
     for host in host_list:
         # install fio on host
-        check_firewalld(host)
+        check_firewall(host)
         host.deploy('fio')
         # check if fio directory, result.txt and config file already exists.
         # then remove it.
@@ -76,16 +76,18 @@ def start_fio(host_list):
                           config.FIO_CONF_FILE))
         host.refresh_disk_list()
 
-        host.conn.edit_load_file(host.disk_list, path_load_file="{}{}".format(
-                                 FIO_REMOTE_PATH, config.FIO_CONF_FILE))
         log.info("Step 3. Choose file/block IO")
         if 'block_io' in config.LOAD_TYPE:
             # start dynamo on host machine
+            host.conn.edit_load_file_for_block_io(host.disk_list,
+                                                  path_load_file="{}{}".format
+                                                  (FIO_REMOTE_PATH,
+                                                   config.FIO_CONF_FILE))
             log.info("Step 4. Start fio load on raw device.")
-            status, stdout, stderr = host.conn.execute_command("fio {}{} --output="
-                                "{}{}".format(FIO_REMOTE_PATH,
-                                config.FIO_CONF_FILE, FIO_REMOTE_PATH,
-                                config.FIO_RESULT_FILE))
+            status, stdout, stderr = host.conn.execute_command("fio {}{} "
+                                     "--output={}{}".format(FIO_REMOTE_PATH,
+                                     config.FIO_CONF_FILE, FIO_REMOTE_PATH,
+                                     config.FIO_RESULT_FILE))
             if status:
                 log.info(stdout)
                 log.error(stderr)
@@ -96,12 +98,19 @@ def start_fio(host_list):
             if not os.path.isdir(log_dir):
                 os.makedirs(log_dir)
             res_file = os.path.join(log_dir, "{}".format(
-                                    config.FIO_RESULT_FILE))
+                config.FIO_RESULT_FILE))
             log.info("Fio logs will be collected in '{}' directory".format(
-                     log_dir))
+                log_dir))
             log.info("res_file: {}".format(res_file))
             host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
-                              config.FIO_RESULT_FILE), localpath=res_file)
+                              config.FIO_RESULT_FILE), localpath="{}".format
+                              (res_file))
+            conf_file = os.path.join(log_dir, "{}".format(
+                config.FIO_CONF_FILE))
+            log.info("conf_file: {}".format(conf_file))
+            host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
+                              config.FIO_CONF_FILE), localpath="{}".format(
+                              conf_file))
             log.info(stdout)
         elif 'file_io' in config.LOAD_TYPE:
             host.create_file_system_on_disks()
@@ -122,15 +131,19 @@ def start_fio(host_list):
             log.info("Filesystem mount locations are {}" \
                      .format(host.mount_locations))
             log.info("Disks are: {}".format(host.disk_list))
+            host.conn.edit_load_file_for_file_io(host.mount_locations,
+                                                 path_load_file="{}{}".format(
+                                                 FIO_REMOTE_PATH,
+                                                 config.FIO_CONF_FILE))
+            # start dynamo on host machine
             log.info("Step 4. Start fio load on file system device.")
-            status, stdout, stderr = host.conn.execute_command("fio {}{} --output="
-                                "{}{}".format(FIO_REMOTE_PATH,
-                                config.FIO_CONF_FILE, FIO_REMOTE_PATH,
-                                config.FIO_RESULT_FILE))
+            status, stdout, stderr = host.conn.execute_command("fio {}{} "
+                                     "--output={}{}".format(FIO_REMOTE_PATH,
+                                     config.FIO_CONF_FILE, FIO_REMOTE_PATH,
+                                     config.FIO_RESULT_FILE))
             if status:
                 log.info(stdout)
                 log.error(stderr)
-            else:
                 log.info("FIO completed successfully.")
             log_dir = config.LOG_DIR
             log_dir = os.path.join(log_dir)
@@ -142,7 +155,14 @@ def start_fio(host_list):
                      log_dir))
             log.info("res_file: {}".format(res_file))
             host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
-                              config.FIO_RESULT_FILE), localpath=res_file)
+                              config.FIO_RESULT_FILE), localpath="{}".format
+                              (res_file))
+            conf_file = os.path.join(log_dir, "{}".format(
+                                     config.FIO_CONF_FILE))
+            log.info("conf_file: {}".format(conf_file))
+            host.conn.scp_get(remotepath="{}{}".format(FIO_REMOTE_PATH,
+                              config.FIO_CONF_FILE), localpath="{}".format(
+                              conf_file))
             log.info(stdout)
 
 def main():
@@ -228,4 +248,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
