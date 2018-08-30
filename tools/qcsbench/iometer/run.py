@@ -12,7 +12,6 @@ import subprocess
 # from qcs automations libs
 import config
 from nodes.node import Linux
-from libs.vdb_config import create_config
 from libs.log.logger import Log
 from libs.ovirt_engine import OvirtEngine
 
