@@ -83,11 +83,17 @@ def push_key_to_slave(master_node, slave_vms):
     _, stdout, stderr = master_node.conn.execute_command(command)
     key_data = stdout[0]
     for slave_node in slave_vms:
+        # Create directory if it doesn't exists
+        slave_node.makedir('/root/.ssh')
         command = 'echo {} >> /root/.ssh/authorized_keys'.format(key_data)
         status, stdout, stderr = slave_node.conn.execute_command(command)
         if status:
             log.info(stdout)
             log.error(stderr)
+    # disable strict host ksy checking
+    data = 'Host *\nStrictHostKeyChecking no\nUserKnownHostsFile=/dev/null'
+    command = "echo -e '{}' > /root/.ssh/config".format(data)
+    status, stdout, stderr = master_node.conn.execute_command(command)
 
 def generate_key(master_node):
     """
@@ -119,9 +125,7 @@ def configure_master_host(master_node, slave_nodes):
     password less authentication.
     """
     check_firewalld(master_node)
-    if key_is_present(master_node):
-        push_key_to_slave(master_node, slave_nodes)
-    else:
+    if not key_is_present(master_node):
         generate_key(master_node)
     push_key_to_slave(master_node, slave_nodes)
 
