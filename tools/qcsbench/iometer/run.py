@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import subprocess
+from shutil import copyfile
 
 # from qcs automations libs
 import config
@@ -16,7 +17,12 @@ from libs.log.logger import Log
 from libs.ovirt_engine import OvirtEngine
 
 # create log object
-log = Log()
+if os.environ.get('USE_ROBOT_LOGGER', None) == "True":
+    from libs.log.logger import Log
+    log = Log()
+else:
+    log = Log()
+file_list=list()
 
 
 def check_firewalld(node):
@@ -46,7 +52,7 @@ def get_current_host_ip():
 def start_iometer(master, slave_nodes, current_host_ip, configfile):
     """
     Start Dynamo on slave nodes and iometer on client node
-    :param master - ssh connection iometer server(windows)
+    :param master - ssh coIOMETER_SERVERnnection iometer server(windows)
     :param slave_nodes - ssh connection to slave nodes(linux)
     :param current_host_ip - ip of the current machine
     :param configfile - configuration file to be used
@@ -103,47 +109,86 @@ def start_iometer(master, slave_nodes, current_host_ip, configfile):
         .format(current_host_ip, config.CURRENT_UNAME, config.CURRENT_PASSWD,
                 output_directory, config.IOMETER_SDK))
 
-def create_configuration_file(slave_nodes, configfile):
+def create_configuration_file(master, slave_nodes, configfile):
     """
     Add the number of slave client and disk to configuration file.
     :param slave_nodes: Command to be executed
         :return: None
 
     """
-    target_info = list()
-    target_info = ["'Target",
-                   "\tdummay_disk",
-                   "'Target type",
-                   "\tDISK",
-                   "'End target"]
+    if os.path.isfile(configfile):
+        os.remove(configfile)
+
+    copyfile(config.BASE_IOMETER_FILE, configfile)
+    fd1=open(configfile,'a')
+    status, stdout, stderr = master.conn.execute_command("cmd \/c hostname" )
+    data = "'Manager ID, manager name\n\t1," + str(stdout[0]) + \
+           "\n'Manager network address\n\n'End manager\n"
+    fd1.write(data)
 
     for slave_vm in slave_nodes:
          # get disk name from slave
          slave_vm.refresh_disk_list()
          disks = [disk.split('/')[-1] for disk in slave_vm.disks]
+         log.info("disks : ", disks)
 
          flag = False
-         # write disk name and ip address to config file
+
          with open("iometer.icf") as fd:
-             with open(configfile, "w") as fd1:
-                 for line in fd:
-                     if line.startswith("\'Manager network address"):
-                         fd1.write(line)
-                         flag = True
-                         data = str(slave_vm) + "\n"
-                     elif line.startswith("\'Target assignments"):
-                         fd1.write(line)
-                         for disk in disks:
-                             # update the disk name in target_info
-                             target_info[1] = "\t" + disk 
-                             # write target_info in file
-                             for line_info in target_info:
-                                 fd1.write(line_info + "\n")
-                     elif flag:
-                         fd1.write(data)
-                         flag = False
-                     else:
-                         fd1.write(line)
+                i = 2
+                status, stdout, stderr = slave_vm.conn.execute_command\
+                    ("hostname")
+                data = "'Manager ID, manager name\n\t" + str(i) + "," + \
+                       str(stdout[0]) + "\n'Manager network address\n\t" + \
+                       str(slave_vm) + "\n"
+                j = 1
+                for j in range(1,int(config.WORKLOAD_INFO['no_of_worker'])+1):
+                    s = "'Worker\n\tworker" + str(j) + "\n'Worker type" + \
+                        "\n\tDISK" + "\n'Default target settings for " + \
+                        "worker\n'Number of outstanding IOs,test " + \
+                        "connection rate,transactions per connection,use " + \
+                        "fixed seed,fixed seed value\n\t1,DISABLED,1," + \
+                        "DISABLED,0\n'Disk maximum size,starting sector," + \
+                        "Data pattern\n\t" + \
+                        str(config.WORKLOAD_INFO["size_in_sector"]) + \
+                        ",0,0\n'End default target settings for worker\n" +\
+                        "'Assigned access specs\n\t"
+                    for value in range(len(config.WORKLOAD_INFO
+                                           ["access_specification"])):
+                        if value == len(config.WORKLOAD_INFO
+                                        ["access_specification"]) - 1:
+                            s += str(config.WORKLOAD_INFO
+                                     ["access_specification"][value])
+                            s += "\n"
+                        else:
+                            s += str(config.WORKLOAD_INFO
+                                     ["access_specification"][value])
+                            s += "\n\t"
+                    s += "'End assigned access specs\n'Target assignments\n"
+                    if(config.LOAD_TYPE=='file_io'):
+                        file_list=slave_vm.mount_locations
+                        if (len(file_list) == 0):
+                            log.info("Sorry There is no available file list")
+                            return
+                        else:
+                            for files in file_list:
+                                s += "'Target\n\t" + str(files) + \
+                                     " [ext4]\n'Target type\n\tDISK\n" + \
+                                     "'End target\n"
+                            s += "'End target assignments\n'End worker\n"
+                    elif(config.LOAD_TYPE=='block_io'):
+                        for disk in disks:
+                            s += "'Target\n\t" + disk + \
+                                 "\n'Target type\n\tDISK\n'End target\n"
+                        s += "'End target assignments\n'End worker\n"
+                    else:
+                        print ("Load Type value is not correct")
+                        return
+                    data += s
+                data += "'End manager\n'END manager list\nVersion 1.1.0"
+                fd1.write(data)
+    fd1.close()
+
 
 def main():
     """
@@ -154,7 +199,7 @@ def main():
     3. choose file/block IO
     4. start iometer load in foreground
     """
-    log_dir = config.LOG_DIR 
+    log_dir = config.LOG_DIR
     if not os.path.isdir(log_dir):
         os.makedirs(log_dir)
     logfile = os.path.join(log_dir, "iometer_stdout.log")
@@ -192,14 +237,13 @@ def main():
     vm_ips = list()
     for vm in vms:
         ip = ovirt.get_vm_ip(vm.name)
-        if ip:
-            vm_ips.append(ip)
-        else:
-            log.critical("No IP found for host {}".format(vm.name))
-            sys.exit(1)
+        vm_ips.append(ip)
     log.info("VM IPs are: {}".format(vm_ips))
+    if not vm_ips:
+        log.critical("No vm IP found")
+        sys.exit(1)
 
-    log.info("Creating host objects") 
+    log.info("Creating host objects")
     host_list = list()
     for vm in vm_ips:
         if config.HOST_TYPE.lower() == 'linux':
@@ -217,19 +261,52 @@ def main():
                         config.IOMETER_PASSWD)
 
     # Add disks
-    log.info("Step 2. Add disk to VM(s)")
-    for vm in vms:
-         for i in range(config.DISK_COUNT):
-            ovirt.add_disk(vm.name,
-                           "disk_" + str(i),
-                           config.DISK_SIZE_GB,
-                           config.TEMPLATE_DS)
+    if config.LOAD_TYPE == 'block_io' :
+        log.info("Step 2. Add disk to VM(s)")
+        for vm in vms:
+            for i in range(config.DISK_COUNT):
+                ovirt.add_disk(vm.name,
+                               "disk_" + str(i),
+                               config.DISK_SIZE_GB,
+                               config.TEMPLATE_DS)
+
+    elif config.LOAD_TYPE == 'file_io' :
+        log.info("Step 2. Add disk to VM(s)")
+        for vm in vms:
+            for i in range(config.DISK_COUNT):
+                ovirt.add_disk(vm.name,
+                               "disk_" + str(i),
+                               config.DISK_SIZE_GB,
+                               config.TEMPLATE_DS)
+                #change salve_vm name
+                host.change_hostname()
+        # partition and format disk if its file_io
+        for host in host_list:
+            host.refresh_disk_list()
+            host.create_file_system_on_disks()
+                # list: get mount locations  ['/mnt/loc0', '/mnt/loc1']
+            for i, location in enumerate(host.filesystem_locations):
+                mount_point = "/mnt/loc{}".format(i)
+                host.makedir(mount_point)
+                # mount formatted device on host system
+                cmd = "mount {} {}".format(location, mount_point)
+                status, stdout, _ = host.conn.execute_command(cmd)
+                if status:
+                    log.info(stdout)
+                    log.error("Unable to mount {} on {}" \
+                              .format(location, mount_point))
+                # append to mountpoints
+                host.mount_locations.append(mount_point)
+            log.info("Filesystem mount locations are {}" \
+                     .format(host.mount_locations))
+            #file_list = host.mount_locations
+        log.info("Disks are: {}".format(host.disk_list))
 
     log.info("Step 3. Create config file based on load type")
     output_configfile = os.path.join(log_dir, config.IOMETER_CONFIG_FILE)
     output_configfile = os.path.abspath(output_configfile)
     log.info("Output configuration file {}".format(output_configfile))
-    create_configuration_file(host_list, output_configfile)
+    create_configuration_file(master_host, host_list, output_configfile)
     current_host_ip = get_current_host_ip()
     log.info(current_host_ip)
 
@@ -240,4 +317,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

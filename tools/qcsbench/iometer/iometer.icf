@@ -196,28 +196,3 @@ Version 1.1.0
 	262144,3,0,0,0,1,0,0
 'END access specifications
 'MANAGER LIST ==================================================================
-'Manager ID, manager name
-	1,master_vm
-'Manager network address
-	192.168.56.102
-'Worker
-	Worker 1
-'Worker type
-	DISK
-'Default target settings for worker
-'Number of outstanding IOs,test connection rate,transactions per connection,use fixed seed,fixed seed value
-	1,DISABLED,1,DISABLED,0
-'Disk maximum size,starting sector,Data pattern
-	0,0,0
-'End default target settings for worker
-'Assigned access specs
-	512 B; 50% Read; 0% random
-	4 KiB; 75% Read; 0% random
-'End assigned access specs
-'Target assignments
-'End target assignments
-'End worker
-'End manager
-'END manager list
-Version 1.1.0 
-
