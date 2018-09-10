@@ -311,7 +311,7 @@ class OvirtEngine:
         vm_service.remove()
         log.info("Successfully removed vm {}".format(vm_name))
 
-    def add_disk(self, vm_name, disk_name, disk_size_gb, datastore):
+    def add_disk(self, vm_name, disk_name, disk_size_gb, datastore,storage_type):
         """
         Add disk to a VM
         :param vm_name - VM name
@@ -325,6 +325,9 @@ class OvirtEngine:
         vms_service = self.connection.system_service().vms_service()
         vm = vms_service.list(search='name=%s'%vm_name)[0]
 
+        #Powering opp the VM if storage_type='CINDER'
+        if(storage_type=='CINDER'):
+            self.stop_vm(vm_name)
         # Locate the service that manages the disk attachments of the virtual
         # machine:
         disk_attachments_service = vms_service.vm_service(vm.id)\
@@ -334,25 +337,46 @@ class OvirtEngine:
         # Note that the size of the disk, the `provisioned_size` attribute, is
         # specified in bytes, so to create a disk of 10 GiB the value should
         # be 10 * 2^30.
-        disk_attachment = disk_attachments_service.add(
-            types.DiskAttachment(
-                disk=types.Disk(
-                    name='%s'%disk_name,
-                    description='%s'%disk_name,
-                    format=types.DiskFormat.COW,
-                    provisioned_size=disk_size_gb * 2**30,
-                    storage_domains=[
-                        types.StorageDomain(
-                           name='%s'%datastore,
-                        ),
-                    ],
+        if(storage_type=='CINDER'):
+            disk_attachment = disk_attachments_service.add(
+                types.DiskAttachment(
+                    disk=types.Disk(
+                        name='%s'%disk_name,
+                        description='%s'%disk_name,
+                        format=types.DiskFormat.COW,
+                        provisioned_size=disk_size_gb * 2**30,
+                        storage_domains=[
+                            types.StorageDomain(
+                               name='%s'%datastore,
+                            ),
+                        ],
+                        openstack_volume_type=types.OpenStackVolumeType(
+                           name="cinder_pool",),
+                    ),
+                    interface=types.DiskInterface.IDE,
+                    bootable=False,
+                    active=True,
                 ),
-                interface=types.DiskInterface.VIRTIO_SCSI,
-                bootable=False,
-                active=True,
-            ),
-        )
-
+            )
+        else:
+             disk_attachment = disk_attachments_service.add(
+                types.DiskAttachment(
+                    disk=types.Disk(
+                        name='%s'%disk_name,
+                        description='%s'%disk_name,
+                        format=types.DiskFormat.COW,
+                        provisioned_size=disk_size_gb * 2**30,
+                        storage_domains=[
+                            types.StorageDomain(
+                               name='%s'%datastore,
+                            ),
+                        ],
+                    ),
+                    interface=types.DiskInterface.VIRTIO_SCSI,
+                    bootable=False,
+                    active=True,
+                ),
+            )
         # Wait till the disk is OK:
         disks_service = self.connection.system_service().disks_service()
         disk_service = disks_service.disk_service(disk_attachment.disk.id)
@@ -363,6 +387,8 @@ class OvirtEngine:
                 log.info("Successfully added disk {} to vm {} of size {} GB"\
                          .format(disk_name, vm_name, disk_size_gb))
                 break
+        if(storage_type=='CINDER'):
+            self.start_vm(vm_name)
 
     def create_vm_from_template(self, vm_name, cluster_name, template_name,
                                 template_datastore):
@@ -464,6 +490,30 @@ class OvirtEngine:
         """
         self.connection.close()
 
+    def start_vm(self, vm_name):
+        """
+        :param vm_name - Name of VM
+        :return None
+        """
+        # Get the reference to the "vms" service:
+        vms_service = self.connection.system_service().vms_service()
+
+        # Find the virtual machine:
+        vm = vms_service.list(search='name=%s'%vm_name)[0]
+
+        # Locate the service that manages the virtual machine, as that is where
+        # the action methods are defined:
+        vm_service = vms_service.vm_service(vm.id)
+
+        # Wait till the virtual machine is UP:
+        while True:
+            time.sleep(5)
+            vm = vm_service.get()
+            if vm.status == types.VmStatus.DOWN:
+                vm_service.start()
+                while vm_service.get().status != types.VmStatus.UP:
+                    continue
+                break
 
 if __name__ == '__main__':
     print("Module loaded successfully.")
