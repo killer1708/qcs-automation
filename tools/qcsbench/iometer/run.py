@@ -72,8 +72,9 @@ def start_iometer(master, slave_nodes, current_host_ip, configfile):
 
     # remove if existing config and result file on master node
     _, stdout, stderr = \
-        master.conn.execute_command("cmd \/c del /f {0}result.csv"\
-                                    .format(config.IOMETER_SDK))
+        master.conn.execute_command("cmd \/c del /f {0}{1}"\
+                                    .format(config.IOMETER_SDK,
+                                            config.IOMETER_RESULT_FILE_NAME))
     _, stdout, stderr = \
         master.conn.execute_command("cmd \/c del /f {0}{1}"\
                                     .format(config.IOMETER_SDK,
@@ -93,8 +94,9 @@ def start_iometer(master, slave_nodes, current_host_ip, configfile):
     # start iometer on Iometer server
     status, stdout, stderr = \
         master.conn.execute_command(
-        "cmd \/c {0}IOmeter.exe /c {0}test_iometer.icf /r {0}result.csv /t 15"\
-        .format(config.IOMETER_SDK))
+            "cmd \/c {0}IOmeter.exe /c {0}{1} /r {0}{2} /t 15" \
+                .format(config.IOMETER_SDK, config.IOMETER_CONFIG_FILE,
+                        config.IOMETER_RESULT_FILE_NAME))
     if status:
         log.info(stdout)
         log.error(stderr)
@@ -134,7 +136,7 @@ def create_configuration_file(master, slave_nodes, configfile):
 
          flag = False
 
-         with open("iometer.icf") as fd:
+         with open(config.BASE_IOMETER_FILE) as fd:
                 i = 2
                 status, stdout, stderr = slave_vm.conn.execute_command\
                     ("hostname")
