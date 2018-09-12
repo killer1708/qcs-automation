@@ -83,4 +83,4 @@ LOG_LEVEL = "DEBUG"
 LOG_DIR = "output"
 
 #Storage_Type either it can be IMAGE or CINDER
-STORAGE_TYPE = "CINDER"
+STORAGE_TYPE = "IMAGE"
