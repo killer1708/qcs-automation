@@ -7,7 +7,7 @@ Prerequisite:
       - create windows server with user administrator and password master@123
       - Install IOmeter and dynamo in
         C:\Users\Administrator\Desktop\iometer_sdk directory
-      - Instal pscp.exe in Desktop directory
+      - Install pscp.exe in Desktop directory
       - Disable the firewall
       - install freesshd and start the service on port 22 create user
         administrator and password master@123 for freesshd server
