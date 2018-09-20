@@ -348,11 +348,13 @@ def main():
     # Add disks
     log.info("Step 2. Add disk to VM(s)")
     for vm in vms:
-         for i in range(config.DISK_COUNT):
+        for i in range(config.DISK_COUNT):
             ovirt.add_disk(vm.name,
-                           "disk_" + str(i),
-                           config.DISK_SIZE_GB,
-                           config.TEMPLATE_DS)
+                "disk_" + str(i),
+                config.DISK_SIZE_GB,
+                config.TEMPLATE_DS,
+                config.STORAGE_TYPE)
+
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
         vdbench_deploy(host)

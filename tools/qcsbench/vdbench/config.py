@@ -9,26 +9,26 @@ OVIRT_ENGINE_UNAME = 'admin@internal'
 OVIRT_ENGINE_PASS = 'admin'
 
 # ovirt cluster name
-CLUSTER_NAME='Default'
+CLUSTER_NAME = 'Default'
 
 # vm template name in ovirt
-TEMPLATE_NAME='automation_template_for_qcsbench_tool'
+TEMPLATE_NAME = 'automation_template_for_qcsbench_tool'
 
 # template data domain
-TEMPLATE_DS='ovirt_data'
+TEMPLATE_DS = 'ovirt_data'
 
 # name of the vm to be created
-VM_NAME='qcs_vdbench_vm'
+VM_NAME = 'qcs_vdbench_vm'
 
 # slave vm details
 # number vm to be create
-SLAVE_VM_COUNT=1
+SLAVE_VM_COUNT = 1
 # slave vm type: linux|windows
 HOST_TYPE = 'linux'
 # vm user name
-SLAVE_UNAME='root'
+SLAVE_UNAME ='root'
 # vm password
-SLAVE_PASSWORD='master#123'
+SLAVE_PASSWORD = 'master#123'
 
 # disk details
 DISK_COUNT = 1
@@ -81,3 +81,6 @@ LOG_LEVEL = "DEBUG"
 
 # log directory name
 LOG_DIR = "output"
+
+#Storage_Type either it can be IMAGE or CINDER
+STORAGE_TYPE = "IMAGE"
