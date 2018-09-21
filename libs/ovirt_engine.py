@@ -311,7 +311,7 @@ class OvirtEngine:
         vm_service.remove()
         log.info("Successfully removed vm {}".format(vm_name))
 
-    def add_disk(self, vm_name, disk_name, disk_size_gb, datastore,/
+    def add_disk(self, vm_name, disk_name, disk_size_gb, datastore,
         storage_type='IMAGE'):
         """
         Add disk to a VM
