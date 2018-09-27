@@ -61,6 +61,5 @@ LOG_DIR = "output"
 FIO_RESULT_FILE = "result.txt"
 
 # Storage_Type either it can be IMAGE or CINDER
-STORAGE_TYPE = "CINDER"
-
+STORAGE_TYPE = "IMAGE"
 
