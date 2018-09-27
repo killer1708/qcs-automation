@@ -239,7 +239,8 @@ def main():
             ovirt.add_disk(vm.name,
                            "disk_" + str(i),
                            config.DISK_SIZE_GB,
-                           config.TEMPLATE_DS)
+                           config.TEMPLATE_DS,
+                           config.STORAGE_TYPE)
 
     this_server = get_master_ip()
     log.info(this_server)
