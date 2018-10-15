@@ -10,7 +10,7 @@ import time
 import tempfile
 
 # from qcs-automation libs
-from nodes.node import Linux
+from nodes.node import Linux, Windows
 from libs.ovirt_engine import OvirtEngine
 from libs.log.logger import Log
 from tools.qcsbench.vdbench import config
@@ -26,9 +26,7 @@ else:
 VDBENCH_MOUNT_LOCATION = '/var/vdbench_share'
 VDBENCH_EXE_LOC = "/opt/vdbench"
 VDBENCH_LOGS = "/opt/vdbench/output_dir"
-WIN_VDBENCH_EXE_LOC = "c:\\vdbench"
-WIN_VDBENCH_LOGS = "c:\\vdbench\\output_dir"
-
+WIN_VDBENCH_EXE_LOC = "vdbench"
 
 def vdbench_deploy(host):
     """
@@ -68,32 +66,56 @@ def key_is_present(host):
     """
     Verify the key is present on the host
     """
-    status, stdout, stderr =  host.conn.execute_command('ls /root/.ssh')
-    if status:
+    if(config.HOST_TYPE == 'linux'):
+        status, stdout, stderr =  host.conn.execute_command('ls /root/.ssh')
+        if status:
+            return False
+        if 'id_rsa.pub' in stdout[0]:
+            return True
         return False
-    if 'id_rsa.pub' in stdout[0]:
-        return True
-    return False
+    else:
+        status, stdout, stderr =  host.conn.execute_command('cmd /c dir "C:\\Program Files (x86)\\freeSSHd"')
+        if status:
+            return False
+        for value in stdout:
+            if 'RSAKey.cfg' in value:
+                return True
+        return False
 
 def push_key_to_slave(master_node, slave_vms):
     """
     Copy public key of master to slave VMs
     """
-    command = 'cat /root/.ssh/id_rsa.pub'
-    _, stdout, stderr = master_node.conn.execute_command(command)
-    key_data = stdout[0]
-    for slave_node in slave_vms:
-        # Create directory if it doesn't exists
-        slave_node.makedir('/root/.ssh')
-        command = 'echo {} >> /root/.ssh/authorized_keys'.format(key_data)
-        status, stdout, stderr = slave_node.conn.execute_command(command)
-        if status:
-            log.info(stdout)
-            log.error(stderr)
-    # disable strict host ksy checking
-    data = 'Host *\nStrictHostKeyChecking no\nUserKnownHostsFile=/dev/null'
-    command = "echo -e '{}' > /root/.ssh/config".format(data)
-    status, stdout, stderr = master_node.conn.execute_command(command)
+    if(config.HOST_TYPE == 'linux'):
+        command = 'cat /root/.ssh/id_rsa.pub'
+        _, stdout, stderr = master_node.conn.execute_command(command)
+        key_data = stdout[0]
+        for slave_node in slave_vms:
+            # Create directory if it doesn't exists
+            slave_node.makedir('/root/.ssh')
+            command = 'echo {} >> /root/.ssh/authorized_keys'.format(key_data)
+            status, stdout, stderr = slave_node.conn.execute_command(command)
+            if status:
+                log.info(stdout)
+                log.error(stderr)
+        # disable strict host ksy checking
+        data = 'Host *\nStrictHostKeyChecking no\nUserKnownHostsFile=/dev/null'
+        command = "echo -e '{}' > /root/.ssh/config".format(data)
+        status, stdout, stderr = master_node.conn.execute_command(command)
+    else:
+        command = 'cmd /c type "C:\\Program Files (x86)\\freeSSHd\\RSAKey.cfg"'
+        _, stdout, stderr = master_node.conn.execute_command(command)
+        key_data = ""
+        for line in stdout:
+            champ=key_data+line.strip('\n')
+        for slave_node in slave_vms:
+            # Create directory if it doesn't exists
+            slave_node.makedir('C:\\.ssh')
+            command = 'cmd /c echo {} >> C:\\.ssh\\authorized_keys'.format(key_data)
+            status, stdout, stderr = slave_node.conn.execute_command(command)
+            if status:
+                log.info(stdout)
+                log.error(stderr)
 
 def generate_key(master_node):
     """
@@ -119,12 +141,13 @@ def check_firewalld(master_node):
     except Exception as e:
         print("Something goes wrong")
 
-def configure_master_host(master_node, slave_nodes):
+def configure_master_host(master_node, slave_nodes, host_type='linux'):
     """
     This will copy master ssh key to all the slave VM's for
     password less authentication.
     """
-    check_firewalld(master_node)
+    if (host_type=='linux'):
+        check_firewalld(master_node)
     if not key_is_present(master_node):
         generate_key(master_node)
     push_key_to_slave(master_node, slave_nodes)
@@ -151,10 +174,16 @@ def generate_paramfile(load_type, hosts, conf):
         sd_params = []
         for host in hosts:
             # add hd params
-            hd_params = "hd={},shell=ssh,system={},user=root,vdbench={}"\
-                .format(str(host),
-                        str(host),
-                        VDBENCH_EXE_LOC)
+            if(config.HOST_TYPE == 'linux'):
+                hd_params = "hd={},shell=ssh,system={},user=root,vdbench={}"\
+                    .format(str(host),
+                            str(host),
+                            VDBENCH_EXE_LOC)
+            else:
+                hd_params = "hd={},shell=ssh,system={},user=root,vdbench=C:\\{}"\
+                    .format(str(host),
+                            str(host),
+                            WIN_VDBENCH_EXE_LOC) 
             newconf.append(hd_params)
 
             # terminate if no disk found for a host
@@ -207,8 +236,12 @@ def generate_paramfile(load_type, hosts, conf):
     # File IO code block
     if file_io:
         newconf = list()
-        newconf.append("hd=default,shell=ssh,user=root,vdbench={}"\
-                       .format(VDBENCH_EXE_LOC)) 
+        if(config.HOST_TYPE=="linux"):
+            newconf.append("hd=default,shell=ssh,user=root,vdbench={}"\
+                           .format(VDBENCH_EXE_LOC)) 
+        else:
+            newconf.append("hd=default,shell=ssh,user=admin,vdbench=C:\\{}"\
+                           .format(WIN_VDBENCH_EXE_LOC))
         i = 1
         for host in hosts:
             host.fsd_params = []
@@ -227,9 +260,9 @@ def generate_paramfile(load_type, hosts, conf):
                     for key, value in conf['fsd_params'].items():
                         temp.append("{}={}".format(key, value))
                     params = "fsd=fsd_{},anchor={},{}".format(
-                              i, fs, ','.join(temp))
+                              i, fs[0], ','.join(temp))
                 else:
-                    params = "fsd=fsd_{},anchor={}".format(i, fs)
+                    params = "fsd=fsd_{},anchor={}".format(i, fs[0])
                 host.fsd_params.append(params)
                 # increment i
                 i += 1
@@ -276,6 +309,18 @@ def generate_paramfile(load_type, hosts, conf):
             fh.write(line+"\n")
     return temp_paramfile
 
+def create_window_file_io_file(master_host):
+    for value in range(1,(config.DISK_COUNT+1)):
+        filename ="/tmp/window_file_io_"+str(value)+".txt" 
+        content = open(filename,'w')
+        content.write('select disk '+str(value)+'\nattribute disk clear readonly noerr\n\
+                       online disk noerr\nlist partition\nconvert gpt noerr\n\
+                       create partition primary\nlist partition\nselect partition 2\n\
+                       detail partition\nformat quick FS=ntfs label="mount_point" \n\
+                       assign mount=C:\mountpoint\ndetail partition')
+        content.close()
+        master_host.conn.scp_put(localpath=filename,remotepath=WIN_VDBENCH_EXE_LOC)
+
 def main():
     """
     Standalone vdbench execution steps:
@@ -316,18 +361,24 @@ def main():
                                            config.TEMPLATE_DS)
         vms.append(vm)
 
-    log.info("Sleeping for 1 minute for vm IP to be available.")
-    time.sleep(60)
+    #log.info("Sleeping for 1 minute for vm IP to be available.")
+    #time.sleep(60)
 
     # get vm ips
     vm_ips = list()
     for vm in vms:
-        ip = ovirt.get_vm_ip(vm.name)
-        if ip:
-            vm_ips.append(ip)
-        else:
-            log.critical("No IP found for host {}".format(vm.name))
-            sys.exit(1)
+        attempt_for_ip = 1
+        while(attempt_for_ip < 11):
+            ip = ovirt.get_vm_ip(vm.name)
+            if ip:
+                vm_ips.append(ip)
+                log.info("IP found for host {}".format(vm.name))
+                break
+            attempt_for_ip += 1
+            if(attempt_for_ip == 11):
+                log.critical("No IP found for host {}".format(vm.name))
+                sys.exit(1)
+            time.sleep(30)
     log.info("VM IPs are: {}".format(vm_ips))
 
     log.info("Creating host objects") 
@@ -336,8 +387,7 @@ def main():
         if config.HOST_TYPE.lower() == 'linux':
             host = Linux(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
         elif config.HOST_TYPE.lower() == 'windows':
-            # host = Windows(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
-            pass
+            host = Windows(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
         else:
             log.error("Unknown host type - {}".format(config.HOST_TYPE))
         # update available disks
@@ -359,29 +409,40 @@ def main():
     for host in host_list:
         vdbench_deploy(host)
         host.refresh_disk_list()
-        host.change_hostname()
+        if(config.HOST_TYPE == 'linux'):
+            host.change_hostname()
+        #time.sleep(120)
         if config.LOAD_TYPE == 'file_io':
+            if(config.HOST_TYPE == 'windows'):
+                create_window_file_io_file(master_host)
             host.create_file_system_on_disks()
             log.info("Filesystem locations available are - {}"\
                      .format(host.filesystem_locations))
-            for i, location in enumerate(host.filesystem_locations):
-                mount_point = "/mnt/loc{}".format(i)
-                host.makedir(mount_point)
-                # mount formatted device on host system
-                cmd = "mount {} {}".format(location, mount_point)
-                status, stdout, _ = host.conn.execute_command(cmd)
-                if status:
-                    log.info(stdout)
-                    log.error("Unable to mount {} on {}"\
-                              .format(location, mount_point))
+            if(config.HOST_TYPE == 'linux'):
+                for i, location in enumerate(host.filesystem_locations):
+                    mount_point = "/mnt/loc{}".format(i)
+                    host.makedir(mount_point)
+                    # mount formatted device on host system
+                    cmd = "mount {} {}".format(location, mount_point)
+                    status, stdout, _ = host.conn.execute_command(cmd)
+                    if status:
+                        log.info(stdout)
+                        log.error("Unable to mount {} on {}"\
+                                  .format(location, mount_point))
+                    # append to mountpoints
+                    host.mount_locations.append(host.filesystem_locations)
+            
+                log.info("Filesystem mount locations are {}"\
+                         .format(host.mount_locations))
+            else:
                 # append to mountpoints
-                host.mount_locations.append(mount_point)
-            log.info("Filesystem mount locations are {}"\
-                     .format(host.mount_locations))
+                host.mount_locations.append(host.filesystem_locations)
+                log.info("Filesystem mount locations are {}"\
+                         .format(host.mount_locations))
         log.info("Disks are: {}".format(host.disk_list))
 
     log.info("Configure master host and copy master ssh keys to all slaves")
-    configure_master_host(master_host, host_list)
+    configure_master_host(master_host, host_list ,config.HOST_TYPE)
 
     # create vdbench temp paramfile based upon load type
     log.info("Step 3. Create vdbench temp paramfile based upon load type")
@@ -390,25 +451,29 @@ def main():
     log.info(temp_paramfile)
 
     # copy parameter file to master host
-    master_host.conn.scp_put(localpath=temp_paramfile,
-                                 remotepath=VDBENCH_EXE_LOC)
-
-    if master_host.host_type == 'linux': 
+    if master_host.host_type == 'linux':
+        master_host.conn.scp_put(localpath=temp_paramfile,
+                                     remotepath=VDBENCH_EXE_LOC)
         paramfile = "{}/{}".format(VDBENCH_EXE_LOC,
                                    os.path.basename(temp_paramfile))
         vdbench_exe = VDBENCH_EXE_LOC + "/vdbench"
         logdir = "{}/output".format(VDBENCH_EXE_LOC)
     else:
-        paramfile = "{}/{}".format(WIN_VDBENCH_EXE_LOC,
+        master_host.conn.scp_put(localpath=temp_paramfile,
+                                     remotepath=WIN_VDBENCH_EXE_LOC)
+        paramfile = "{}\\{}".format(WIN_VDBENCH_EXE_LOC,
                                    os.path.basename(temp_paramfile))
         vdbench_exe = WIN_VDBENCH_EXE_LOC + "\\vdbench.bat"
-        logdir = "{}\\output".format(VDBENCH_EXE_LOC)
+        logdir = "{}\\output".format(WIN_VDBENCH_EXE_LOC)
 
     # remove templfile created
     os.unlink(temp_paramfile)
 
     # prepare vdbench command
-    cmd = '{} -f {} -o {}'.format(vdbench_exe, paramfile, logdir)
+    if(config.HOST_TYPE == 'linux'):
+        cmd = '{} -f {} -o {}'.format(vdbench_exe, paramfile, logdir)
+    else:
+        cmd = 'cmd /c C:\\{} -f C:\\{} -o {}'.format(vdbench_exe, paramfile, logdir)
     if config.DATA_VALIDATION:
         cmd = "{} -v".format(cmd)
     log.info("Step 4. Start the vdbench workload")
@@ -430,10 +495,13 @@ def main():
     # Cleanup paramfile from master host
     ovirt.close_connection()
     log.info("Cleaning up paramfile on master host")
-    cmd = "rm -f {}".format(paramfile)
-    _, _, _ = master_host.conn.execute_command(cmd)
+    if(config.HOST_TYPE == 'linux'):
+        cmd = "rm -f {}".format(paramfile)
+        _, _, _ = master_host.conn.execute_command(cmd)
+    else:
+        cmd = "cmd /c del C:\\{}".format(paramfile)
+        _, _, _ = master_host.conn.execute_command(cmd)
 
 
 if __name__ == '__main__':
     main()
-

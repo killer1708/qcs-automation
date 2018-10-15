@@ -4,6 +4,7 @@ node.py:
 """
 
 # from python lib
+import time,sys
 from abc import ABCMeta, abstractmethod
 
 # from qcs automation libs
@@ -201,6 +202,90 @@ class Linux(Node):
             log.info("background command pid: {}".format(pid))
             return pid
 
+class Windows(Node):
+
+    def __init__(self, ip, user, password):
+        self.ip = ip
+        self.user = user
+        self.password = password
+        self.conn = SshConn(self.ip, self.user, self.password)
+        self.host_type = 'Windows'
+        self.disks = list()
+        self.mount_locations = list()
+
+    def __str__(self):
+        return "{}".format(self.conn.ip_address)
+
+    @staticmethod
+    def path_separator():
+        return '\\'
+
+    def _get_disk_list(self):
+        #time.sleep(60)
+        disks = list()
+        #skip_disks = ['DeviceID','PHYSICALDRIVE0']
+        # issue WMIC command to get disk list
+        attempt=1
+        while(attempt<10):
+            cmd = 'cmd /c wmic diskdrive get deviceid'
+            status, stdout, stderr = self.conn.execute_command(cmd)
+            if(stdout != None):
+                break
+            attempt = attempt+1
+            if(attempt == 10):
+                log.info("Exiting the code as not able to get disk list")
+                sys.exit()
+            time.sleep(10)
+        # collect useful disks
+        for disk in range(4,len(stdout)):
+            if(stdout[disk] == ''):
+                continue
+            else:
+                disks.append(stdout[disk][:18])
+        # return available disks
+        return disks 
+
+    def refresh_disk_list(self):
+        self.disks = self._get_disk_list()
+
+    """def change_hostname(self):
+        new_name = "slave_{}".format(str(self).split('.')[-1])
+        cmd1 = "hostname"
+        status, hostname, stderr = self.conn.execute_command(cmd1)
+        cmd = "WMIC computersystem where caption='"+str(hostname)+"' rename {}".format(new_name)
+        status, stdout, stderr = self.conn.execute_command(cmd)
+        if status:
+            log.info(stdout)
+            log.error(error)
+        status, stdout, stderr = self.conn.execute_command("shutdown /r /t 0")
+    """
+    @property
+    def disk_list(self):
+        """
+        get host available disk list
+        """
+        return self.disks
+
+    def makedir(self, dir_name):
+        self.conn.execute_command(['cmd /c mkdir', dir_name])
+
+    def restart(self):
+        raise NotImplementedError
+
+    def create_file_system_on_disks(self):
+        """
+        Create file system on all avaliable disks
+        :return None
+        """
+        self.filesystem_locations = list()
+        self.makedir("C:\\mountpoint")
+        for disk in range(1,(len(self.disks)+1)):
+            cmd = 'cmd /c diskpart.exe/s C:\\vdbench\\window_file_io_'+str(disk)+'.txt'
+            __, stdout, stderr = self.conn.execute_command(cmd)
+            log.info(stdout)
+            partition_name = "C:\\mountpoint"
+            # append to available file system list
+            self.filesystem_locations.append(partition_name)
 
 if __name__ == '__main__':
     ln = Linux('192.168.102.14', 'root', 'master#123')
