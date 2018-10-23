@@ -404,6 +404,8 @@ def main():
                 config.DISK_SIZE_GB,
                 config.TEMPLATE_DS,
                 config.STORAGE_TYPE)
+            while((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name) == "")):
+                continue
 
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
