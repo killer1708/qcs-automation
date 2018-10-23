@@ -411,8 +411,7 @@ def main():
     for host in host_list:
         vdbench_deploy(host)
         host.refresh_disk_list()
-        if(config.HOST_TYPE == 'linux'):
-            host.change_hostname()
+        host.change_hostname()
         #time.sleep(120)
         if config.LOAD_TYPE == 'file_io':
             if(config.HOST_TYPE == 'windows'):
