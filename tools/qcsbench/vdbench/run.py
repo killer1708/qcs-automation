@@ -404,15 +404,14 @@ def main():
                 config.DISK_SIZE_GB,
                 config.TEMPLATE_DS,
                 config.STORAGE_TYPE)
-            while(ovirt.get_vm_ip(vm.name) == None):
+            while(ovirt.get_vm_ip(vm.name)):
                 continue
 
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
         vdbench_deploy(host)
         host.refresh_disk_list()
-        if(config.HOST_TYPE == 'linux'):
-            host.change_hostname()
+        host.change_hostname()
         #time.sleep(120)
         if config.LOAD_TYPE == 'file_io':
             if(config.HOST_TYPE == 'windows'):

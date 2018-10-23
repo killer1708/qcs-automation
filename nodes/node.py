@@ -248,7 +248,7 @@ class Windows(Node):
     def refresh_disk_list(self):
         self.disks = self._get_disk_list()
 
-    """def change_hostname(self):
+    def change_hostname(self):
         new_name = "slave_{}".format(str(self).split('.')[-1])
         cmd1 = "hostname"
         status, hostname, stderr = self.conn.execute_command(cmd1)
@@ -258,7 +258,8 @@ class Windows(Node):
             log.info(stdout)
             log.error(error)
         status, stdout, stderr = self.conn.execute_command("shutdown /r /t 0")
-    """
+        time.sleep(60)
+
     @property
     def disk_list(self):
         """
