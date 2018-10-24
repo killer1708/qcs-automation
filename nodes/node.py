@@ -250,14 +250,14 @@ class Windows(Node):
 
     def change_hostname(self):
         new_name = "slave_{}".format(str(self).split('.')[-1])
-        cmd1 = "hostname"
+        cmd1 = "cmd /c hostname"
         status, hostname, stderr = self.conn.execute_command(cmd1)
-        cmd = "WMIC computersystem where caption='"+str(hostname)+"' rename {}".format(new_name)
+        cmd = "cmd /c WMIC computersystem where caption='"+str(hostname)+"' rename {}".format(new_name)
         status, stdout, stderr = self.conn.execute_command(cmd)
         if status:
             log.info(stdout)
             log.error(error)
-        status, stdout, stderr = self.conn.execute_command("shutdown /r /t 0")
+        status, stdout, stderr = self.conn.execute_command("cmd /c shutdown /r /t 0")
         time.sleep(60)
 
     @property
