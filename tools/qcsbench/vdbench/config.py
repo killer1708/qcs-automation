@@ -44,6 +44,8 @@ PASSWORD = 'master#123'
 # LOAD_TYPE possible values are - block_io|file_io.
 # At a given instant, there could be only one LOAD_TYPE and
 # corresponding WORKLOAD_INFO.
+# if HOST_TYPE == linux then use openflags as "o_direct"
+# if HOST_TYPE == windows then use openflags as "directio"
 LOAD_TYPE = 'block_io'
 # block io details
 WORKLOAD_INFO =  {
