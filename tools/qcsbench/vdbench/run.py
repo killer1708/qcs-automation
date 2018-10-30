@@ -416,7 +416,7 @@ def main():
         if config.LOAD_TYPE == 'file_io':
             if(config.HOST_TYPE == 'windows'):
                 create_window_file_io_file(master_host)
-            host.create_file_system_on_disks()
+            host.create_file_system_on_disks(WIN_VDBENCH_EXE_LOC)
             log.info("Filesystem locations available are - {}"\
                      .format(host.filesystem_locations))
             if(config.HOST_TYPE == 'linux'):

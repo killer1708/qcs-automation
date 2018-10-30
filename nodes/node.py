@@ -249,7 +249,8 @@ class Windows(Node):
         self.disks = self._get_disk_list()
 
     def change_hostname(self):
-        new_name = "slave_{}".format(str(self).split('.')[-1])
+        localtime = time.asctime(time.localtime(time.time()))
+        new_name = "slave_{}"+localtime.replace(" ", "_")
         cmd1 = "cmd /c hostname"
         status, hostname, stderr = self.conn.execute_command(cmd1)
         cmd = "cmd /c WMIC computersystem where caption='"+str(hostname)+"' rename {}".format(new_name)
@@ -273,7 +274,7 @@ class Windows(Node):
     def restart(self):
         raise NotImplementedError
 
-    def create_file_system_on_disks(self):
+    def create_file_system_on_disks(self, tool_name):
         """
         Create file system on all avaliable disks
         :return None
@@ -281,7 +282,7 @@ class Windows(Node):
         self.filesystem_locations = list()
         self.makedir("C:\\mountpoint")
         for disk in range(1,(len(self.disks)+1)):
-            cmd = 'cmd /c diskpart.exe/s C:\\vdbench\\window_file_io_'+str(disk)+'.txt'
+            cmd = 'cmd /c diskpart.exe/s C:\\'+str(tool_name)+'\\window_file_io_'+str(disk)+'.txt'
             __, stdout, stderr = self.conn.execute_command(cmd)
             log.info(stdout)
             partition_name = "C:\\mountpoint"
