@@ -288,14 +288,12 @@ def file_io_window(host, ip):
     log.info("Fio logs will be collected in '{}' directory".format(
         log_dir))
     log.info("res_file: {}".format(res_file))
-    host.conn.scp_get(remotepath="FIO".format(FIO_REMOTE_PATH,
-                                              config.FIO_RESULT_FILE),
+    host.conn.scp_get(remotepath="FIO\\{}".format(config.FIO_RESULT_FILE),
                                               localpath="{}".format(res_file))
     conf_file = os.path.join(log_dir, "{}".format(
         config.FIO_CONF_FILE))
     log.info("conf_file: {}".format(conf_file))
-    host.conn.scp_get(remotepath="FIO".format(FIO_REMOTE_PATH,
-                                              config.FIO_CONF_FILE),
+    host.conn.scp_get(remotepath="FIO\\{}".format(config.FIO_CONF_FILE),
                       localpath="{}".format(conf_file))
     log.info(stdout)
 
