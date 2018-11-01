@@ -1,5 +1,5 @@
 [global]
-ioengine=libaio
+ioengine=windowsaio
 rw=randwrite
 lockfile=readwrite
 blocksize=64k
@@ -10,5 +10,4 @@ thread
 numjobs=1
 runtime=120
 direct=1
-
 

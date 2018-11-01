@@ -81,7 +81,8 @@ class Linux(Node):
         self.disks = self._get_disk_list()
 
     def change_hostname(self):
-        new_name = "slave_{}".format(str(self).split('.')[-1])
+        localtime = time.asctime(time.localtime(time.time()))
+        new_name = "slave_{}"+localtime.replace(" ", "_")
         cmd = "hostnamectl set-hostname {}".format(new_name)
         status, stdout, stderr = self.conn.execute_command(cmd)
         if status:
@@ -282,7 +283,7 @@ class Windows(Node):
             cmd = 'cmd /c diskpart.exe/s C:\\'+str(tool_name)+'\\window_file_io_'+str(disk)+'.txt'
             __, stdout, stderr = self.conn.execute_command(cmd)
             log.info(stdout)
-            partition_name = "C:\\mountpoint"
+            partition_name = "C\\:\\mountpoint"
             # append to available file system list
             self.filesystem_locations.append(partition_name)
 
