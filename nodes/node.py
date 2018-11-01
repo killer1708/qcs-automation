@@ -86,7 +86,7 @@ class Linux(Node):
         status, stdout, stderr = self.conn.execute_command(cmd)
         if status:
             log.info(stdout)
-            log.error(error)
+            log.error("change_hostname command did not executed successfully")
 
     @property
     def disk_list(self):
@@ -221,9 +221,7 @@ class Windows(Node):
         return '\\'
 
     def _get_disk_list(self):
-        #time.sleep(60)
         disks = list()
-        #skip_disks = ['DeviceID','PHYSICALDRIVE0']
         # issue WMIC command to get disk list
         attempt=1
         while(attempt<10):
@@ -253,13 +251,12 @@ class Windows(Node):
         new_name = "slave_{}"+localtime.replace(" ", "_")
         cmd1 = "cmd /c hostname"
         status, hostname, stderr = self.conn.execute_command(cmd1)
-        cmd = "cmd /c WMIC computersystem where caption='"+str(hostname)+"' rename {}".format(new_name)
+        cmd = "cmd /c WMIC computersystem where caption='"+str(hostname[0])+"' rename {}".format(new_name)
         status, stdout, stderr = self.conn.execute_command(cmd)
         if status:
             log.info(stdout)
-            log.error(error)
-        status, stdout, stderr = self.conn.execute_command("cmd /c shutdown /r /t 0")
-        time.sleep(60)
+            log.error("change_hostname Command did not executed successfully")
+        #time.sleep(60)
 
     @property
     def disk_list(self):
