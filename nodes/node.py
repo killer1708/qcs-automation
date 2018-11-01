@@ -81,7 +81,8 @@ class Linux(Node):
         self.disks = self._get_disk_list()
 
     def change_hostname(self):
-        new_name = "slave_{}".format(str(self).split('.')[-1])
+        localtime = time.asctime(time.localtime(time.time()))
+        new_name = "slave_{}"+localtime.replace(" ", "_")
         cmd = "hostnamectl set-hostname {}".format(new_name)
         status, stdout, stderr = self.conn.execute_command(cmd)
         if status:
