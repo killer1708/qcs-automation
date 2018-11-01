@@ -358,7 +358,6 @@ def create_vms(i):
     # get vms ips
     attempt_for_ip = 1
     while (attempt_for_ip < 11):
-        time.sleep(60)
         ip = ovirt.get_vm_ip(vm.name)
         if ip:
             log.info("IP found for host {}".format(vm.name))
