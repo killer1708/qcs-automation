@@ -257,7 +257,7 @@ class Windows(Node):
         status, stdout, stderr = self.conn.execute_command(cmd)
         if status:
             log.info(stdout)
-            log.error(error)
+            log.error(stderr)
         status, stdout, stderr = self.conn.execute_command("cmd /c shutdown /r /t 0")
         time.sleep(60)
 
@@ -285,7 +285,7 @@ class Windows(Node):
             cmd = 'cmd /c diskpart.exe/s C:\\'+str(tool_name)+'\\window_file_io_'+str(disk)+'.txt'
             __, stdout, stderr = self.conn.execute_command(cmd)
             log.info(stdout)
-            partition_name = "C:\\mountpoint"
+            partition_name = "C\\:\\mountpoint"
             # append to available file system list
             self.filesystem_locations.append(partition_name)
 

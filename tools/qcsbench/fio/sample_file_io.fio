@@ -1,0 +1,9 @@
+[global]
+ioengine=windowsaio
+filesize=100mb
+nrfiles=10
+rw=readwrite
+runtime=300
+size=1g
+thread
+
