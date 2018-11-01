@@ -1,34 +1,34 @@
 # Ovirt Engine and host details
 # ovirt server ip
-OVIRT_ENGINE_IP = '192.168.103.65'
+OVIRT_ENGINE_IP = '192.168.105.61'
 
 # ovirt user name
 OVIRT_ENGINE_UNAME = 'admin@internal'
 
 # ovirt password
-OVIRT_ENGINE_PASS = 'master@123'
+OVIRT_ENGINE_PASS = 'admin'
 
 # ovirt cluster name
 CLUSTER_NAME='Default'
 
 # vm template name in ovirt
-TEMPLATE_NAME='automation_template_for_qcsbench_tool'
+TEMPLATE_NAME='champ'
 
 # template data domain
-TEMPLATE_DS='DATA_DOMAIN'
+TEMPLATE_DS='qcinder'
 
 # name of the vm to be created
 VM_NAME='qcs_fio_vm'
 
 # slave vm details
 # number vm to be create
-SLAVE_VM_COUNT=1
+SLAVE_VM_COUNT= 1
 # slave vm type: linux|windows
-HOST_TYPE = 'linux'
+HOST_TYPE = 'windows'
 # vm user name
-SLAVE_UNAME='root'
+SLAVE_UNAME='admin'
 # vm password
-SLAVE_PASSWORD='master@123'
+SLAVE_PASSWORD='admin'
 
 # disk details
 # Number of disks you want to add to individual vm.
@@ -61,5 +61,5 @@ LOG_DIR = "output"
 FIO_RESULT_FILE = "result.txt"
 
 # Storage_Type either it can be IMAGE or CINDER
-STORAGE_TYPE = "IMAGE"
+STORAGE_TYPE = "CINDER"
 
