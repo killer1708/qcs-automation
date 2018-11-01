@@ -475,7 +475,7 @@ def main():
     if(config.HOST_TYPE == 'linux'):
         cmd = '{} -f {} -o {}'.format(vdbench_exe, paramfile, logdir)
     else:
-        cmd = 'cmd /c C:\\{} -f C:\\{} -o {}'.format(vdbench_exe, paramfile, logdir)
+        cmd = 'cmd /c C:\\{} -f C:\\{} -o C:\\{}'.format(vdbench_exe, paramfile, logdir)
     if config.DATA_VALIDATION:
         cmd = "{} -v".format(cmd)
     log.info("Step 4. Start the vdbench workload")
