@@ -22,7 +22,7 @@ VM_NAME='qcs_fio_vm'
 
 # slave vm details
 # number vm to be create
-SLAVE_VM_COUNT= 1
+SLAVE_VM_COUNT= 2
 # slave vm type: linux|windows
 HOST_TYPE = 'windows'
 # vm user name
@@ -38,18 +38,31 @@ DISK_SIZE_GB = 50
 
 # Current system details
 # system user name
-USERNAME = 'root'
+USERNAME = 'msys'
 # system password
 PASSWORD = 'master#123'
 
-# specify load details
+
+# specify load details for linux
 # LOAD_TYPE possible values are - block_io and file_io
 # based on load type fio configuration file will be selected :-
 # for block_io give the value of FIO_CONF_FILE = "test_fio.fio"
 # for file_io give the value of FIO_CONF_FILE = "param_file_io.fio"
-LOAD_TYPE = 'file_io'
+"""
+LOAD_TYPE = 'block_io'
 # fio config file
-FIO_CONF_FILE = "param_file_io.fio"
+FIO_CONF_FILE = "test_fio.fio"
+"""
+
+# specify load details for windows
+# LOAD_TYPE possible values are - block_io and file_io
+# based on load type fio configuration file will be selected :-
+# for block_io give the value of FIO_CONF_FILE = "test_fio_wind.fio"
+# for file_io give the value of FIO_CONF_FILE = "param_file_io_wind.fio"
+
+LOAD_TYPE = 'file_io'
+# fio conf file
+FIO_CONF_FILE = "param_file_io_wind.fio"
 
 # log level
 LOG_LEVEL = "DEBUG"
