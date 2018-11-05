@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import tempfile
+import subprocess
 
 # from qcs-automation libs
 from nodes.node import Linux, Windows
@@ -321,6 +322,11 @@ def create_window_file_io_file(master_host):
         content.close()
         master_host.conn.scp_put(localpath=filename,remotepath=WIN_VDBENCH_EXE_LOC)
 
+def get_current_host_ip():
+    ip = subprocess.check_output('hostname -I | cut -d\" \" -f 1', shell=True)
+    ip = ip.decode(encoding='UTF-8',errors='strict')
+    return ip.rstrip('\n')
+
 def main():
     """
     Standalone vdbench execution steps:
@@ -490,8 +496,14 @@ def main():
     log_dir = os.path.join(log_dir, str(master_host))
     if not os.path.isdir(log_dir):
         os.makedirs(log_dir)
-    master_host.conn.scp_get(remotepath=logdir,
-                                 localpath=log_dir, recursive=True)
+    if(config.HOST_TYPE == 'linux'):
+        master_host.conn.scp_get(remotepath=logdir,
+                                     localpath=log_dir, recursive=True)
+    if(config.HOST_TYPE == 'windows'):
+        cmd = 'cmd /c echo y | pscp -r -pw '+str(config.PASSWORD)+' C:\\vdbench\\output '\
+               +str(config.USERNAME)+'@'+get_current_host_ip()+':'+os.popen('pwd').read()[:-1]+'/output/'+str(master_host)
+        status, stdout, stderr = master_host.conn.execute_command(cmd)
+
     log.info("Collected vdbench logs into {}".format(log_dir))
 
     # Cleanup paramfile from master host
