@@ -390,6 +390,7 @@ class OvirtEngine:
                 break
         if(storage_type == 'CINDER'):
             self.start_vm(vm_name)
+        time.sleep(60)
 
     def create_vm_from_template(self, vm_name, cluster_name, template_name,
                                 template_datastore):
