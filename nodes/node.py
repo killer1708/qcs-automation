@@ -283,7 +283,10 @@ class Windows(Node):
             cmd = 'cmd /c diskpart.exe/s C:\\'+str(tool_name)+'\\window_file_io_'+str(disk)+'.txt'
             __, stdout, stderr = self.conn.execute_command(cmd)
             log.info(stdout)
-            partition_name = "C\\:\\mountpoint"
+            if (tool_name == 'vdbench'):
+                partition_name = "C:\\mountpoint"
+            else:
+                partition_name = "C\\:\\mountpoint"
             # append to available file system list
             self.filesystem_locations.append(partition_name)
 
