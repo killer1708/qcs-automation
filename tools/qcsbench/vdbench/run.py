@@ -263,7 +263,7 @@ def generate_paramfile(load_type, hosts, conf):
                     params = "fsd=fsd_{},anchor={},{}".format(
                               i, fs, ','.join(temp))
                 else:
-                    params = "fsd=fsd_{},anchor={}".format(i, fs[0])
+                    params = "fsd=fsd_{},anchor={}".format(i, fs)
                 host.fsd_params.append(params)
                 # increment i
                 i += 1
