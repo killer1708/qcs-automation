@@ -375,7 +375,6 @@ def main():
     for vm in vms:
         attempt_for_ip = 1
         while(attempt_for_ip < 11):
-            time.sleep(120)
             ip = ovirt.get_vm_ip(vm.name)
             if ip:
                 vm_ips.append(ip)
@@ -416,7 +415,6 @@ def main():
 
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
-        time.sleep(120)
         vdbench_deploy(host)
         host.change_hostname()
         host.refresh_disk_list()
@@ -511,13 +509,12 @@ def main():
     # Cleanup paramfile from master host
     ovirt.close_connection()
     log.info("Cleaning up paramfile on master host")
-    """ if(config.HOST_TYPE == 'linux'):
+    if(config.HOST_TYPE == 'linux'):
         cmd = "rm -f {}".format(paramfile)
         _, _, _ = master_host.conn.execute_command(cmd)
     else:
         cmd = "cmd /c del C:\\{}".format(paramfile)
         _, _, _ = master_host.conn.execute_command(cmd)
-    """
 
 if __name__ == '__main__':
     main()
