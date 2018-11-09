@@ -162,7 +162,6 @@ def generate_paramfile(load_type, hosts, conf):
     """
     block_io = False
     file_io = False
-
     # Check for file/block IO
     if load_type.lower() == 'block_io':
         block_io = True
@@ -255,15 +254,16 @@ def generate_paramfile(load_type, hosts, conf):
                 log.info("Mount locations are {}".format(host.mount_locations))
                 raise Exception("No filestsem location found for host {}"\
                                 .format(str(host)))
+            log.info("Mount locations are {}".format(host.mount_locations))
             for fs in host.mount_locations:
                 if conf.get('fsd_params'):
                     temp = []
                     for key, value in conf['fsd_params'].items():
                         temp.append("{}={}".format(key, value))
                     params = "fsd=fsd_{},anchor={},{}".format(
-                              i, fs[0], ','.join(temp))
+                              i, fs, ','.join(temp))
                 else:
-                    params = "fsd=fsd_{},anchor={}".format(i, fs[0])
+                    params = "fsd=fsd_{},anchor={}".format(i, fs)
                 host.fsd_params.append(params)
                 # increment i
                 i += 1
@@ -438,7 +438,7 @@ def main():
                         log.error("Unable to mount {} on {}"\
                                   .format(location, mount_point))
                     # append to mountpoints
-                    host.mount_locations.append(host.filesystem_locations)
+                    host.mount_locations.append(mount_point)
             
                 log.info("Filesystem mount locations are {}"\
                          .format(host.mount_locations))
@@ -515,7 +515,6 @@ def main():
     else:
         cmd = "cmd /c del C:\\{}".format(paramfile)
         _, _, _ = master_host.conn.execute_command(cmd)
-
 
 if __name__ == '__main__':
     main()
