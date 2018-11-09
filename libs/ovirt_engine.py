@@ -388,7 +388,7 @@ class OvirtEngine:
                 log.info("Successfully added disk {} to vm {} of size {} GB"\
                          .format(disk_name, vm_name, disk_size_gb))
                 break
-        if(storage_type=='CINDER'):
+        if(storage_type == 'CINDER'):
             self.start_vm(vm_name)
 
     def create_vm_from_template(self, vm_name, cluster_name, template_name,
