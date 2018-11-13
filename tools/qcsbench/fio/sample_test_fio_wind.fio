@@ -1,7 +1,6 @@
 [global]
 ioengine=windowsaio
 rw=randwrite
-lockfile=readwrite
 blocksize=64k
 size=2g
 log_avg_msec=5000

@@ -248,7 +248,7 @@ def block_io_window(host, ip, CURRENT_HOST_IP):
 
 def file_io_window(host, ip, CURRENT_HOST_IP):
     create_window_file_io_file(host)
-    host.create_file_system_on_disks(WIN_FIO_EXE_LOC)
+    host.create_file_system_on_disks(config.TOOL_NAME)
     log.info("Filesystem locations available are - {}" \
              .format(host.filesystem_locations))
     log.info("Disks are: {}".format(host.disk_list))
@@ -398,6 +398,7 @@ def create_vms(i):
         while ((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name)
                 == "")):
                 continue
+
     time.sleep(60)
 
     CURRENT_HOST_IP = get_master_ip()
@@ -406,7 +407,6 @@ def create_vms(i):
         start_fio_for_linux(host, ip)
     elif config.HOST_TYPE.lower() == 'windows':
         start_fio_for_windows(host, ip, CURRENT_HOST_IP)
-
 
 def main():
     if os.path.isdir(config.LOG_DIR):

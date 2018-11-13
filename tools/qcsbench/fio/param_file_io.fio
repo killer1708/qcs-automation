@@ -1,8 +1,9 @@
 [global]
 ioengine=libaio
 rw=write
-filesize=1g
-nrfiles=10
+filesize=10G
+size=10G
+nrfiles=100
 bs=64k
 numjobs=2
 iodepth=32
@@ -17,6 +18,11 @@ fsync=1024
 prio=0
 runtime=120
 invalidate=1
+verify=md5
+verify_dump=1
+verify_interval=512
+do_verify=1
+continue_on_error=verify
 direct=0
 
 
