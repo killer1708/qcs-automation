@@ -22,7 +22,7 @@ VM_NAME='qcs_fio_vm'
 
 # slave vm details
 # number vm to be create
-SLAVE_VM_COUNT= 2
+SLAVE_VM_COUNT= 1
 # slave vm type: linux|windows
 HOST_TYPE = 'windows'
 # vm user name
@@ -75,4 +75,6 @@ FIO_RESULT_FILE = "result.txt"
 
 # Storage_Type either it can be IMAGE or CINDER
 STORAGE_TYPE = "CINDER"
+
+TOOL_NAME = "FIO"
 
