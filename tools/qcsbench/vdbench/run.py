@@ -256,14 +256,24 @@ def generate_paramfile(load_type, hosts, conf):
                                 .format(str(host)))
             log.info("Mount locations are {}".format(host.mount_locations))
             for fs in host.mount_locations:
-                if conf.get('fsd_params'):
-                    temp = []
-                    for key, value in conf['fsd_params'].items():
-                        temp.append("{}={}".format(key, value))
-                    params = "fsd=fsd_{},anchor={},{}".format(
-                              i, fs, ','.join(temp))
+                if(config.HOST_TYPE=="linux"):
+                    if conf.get('fsd_params'):
+                        temp = []
+                        for key, value in conf['fsd_params'].items():
+                            temp.append("{}={}".format(key, value))
+                        params = "fsd=fsd_{},anchor={},{}".format(
+                                  i, fs, ','.join(temp))
+                    else:
+                        params = "fsd=fsd_{},anchor={}".format(i, fs)
                 else:
-                    params = "fsd=fsd_{},anchor={}".format(i, fs)
+                    if conf.get('fsd_params'):
+                        temp = []
+                        for key, value in conf['fsd_params'].items():
+                            temp.append("{}={}".format(key, value))
+                        params = "fsd=fsd_{},anchor={},{}".format(
+                                  i, fs[0], ','.join(temp))
+                    else:
+                        params = "fsd=fsd_{},anchor={}".format(i, fs[0])   
                 host.fsd_params.append(params)
                 # increment i
                 i += 1
@@ -375,6 +385,7 @@ def main():
     for vm in vms:
         attempt_for_ip = 1
         while(attempt_for_ip < 11):
+            time.sleep(120)
             ip = ovirt.get_vm_ip(vm.name)
             if ip:
                 vm_ips.append(ip)
@@ -415,6 +426,7 @@ def main():
 
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
+        time.sleep(120)
         vdbench_deploy(host)
         host.change_hostname()
         host.refresh_disk_list()
