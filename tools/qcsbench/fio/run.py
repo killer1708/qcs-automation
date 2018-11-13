@@ -193,7 +193,7 @@ def start_fio_for_linux(host, ip):
         file_io_linux(host, ip)
 
 
-def block_io_window(host, ip):
+def block_io_window(host, ip, CURRENT_HOST_IP):
     # start dynamo on host machine
     # host.conn.edit_load_file_for_block_io(host.disk_list,
     #                                      path_load_file="FIO\\{}".format
@@ -208,7 +208,7 @@ def block_io_window(host, ip):
         conf.add_section(sec)
         conf.set(sec, 'filename', disk)
 
-        with open("test_fio.fio", 'a+') as configfile:
+        with open("{}".format(config.FIO_CONF_FILE), 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
 
     host.conn.scp_put(localpath="{}".format(config.FIO_CONF_FILE),
@@ -234,12 +234,19 @@ def block_io_window(host, ip):
         os.makedirs(log_dir)
     log.info("Fio logs will be collected in '{}' directory".format(
         log_dir))
-    host.conn.scp_get(remotepath="FIO\\result.txt", localpath=log_dir,
-                      recursive=True)
+    output_directory = os.path.abspath(log_dir)
+    _, stdout, stderr = host.conn.execute_command(
+               "cmd /c echo y | pscp -pw {2} {4}{5} {1}@{0}:{3}" \
+               .format(CURRENT_HOST_IP, config.USERNAME, config.PASSWORD,
+               output_directory, WIN_FIO_EXE_LOC, config.FIO_RESULT_FILE))
+    _, stdout, stderr = host.conn.execute_command(
+               "cmd /c echo y | pscp -pw {2} {4}{5} {1}@{0}:{3}" \
+               .format(CURRENT_HOST_IP, config.USERNAME, config.PASSWORD,
+               output_directory, WIN_FIO_EXE_LOC, config.FIO_CONF_FILE))
     log.info(stdout)
 
 
-def file_io_window(host, ip):
+def file_io_window(host, ip, CURRENT_HOST_IP):
     create_window_file_io_file(host)
     host.create_file_system_on_disks(WIN_FIO_EXE_LOC)
     log.info("Filesystem locations available are - {}" \
@@ -257,7 +264,7 @@ def file_io_window(host, ip):
         conf.add_section(sec)
         conf.set(sec, 'directory', disk)
 
-        with open("param_file_io.fio", 'a+') as configfile:
+        with open("{}".format(config.FIO_CONF_FILE), 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
 
     host.conn.scp_put(localpath="{}".format(config.FIO_CONF_FILE),
@@ -283,22 +290,21 @@ def file_io_window(host, ip):
     os.makedirs(log_dir)
     if not os.path.isdir(log_dir):
         os.makedirs(log_dir)
-    res_file = os.path.join(log_dir, "{}".format(
-        config.FIO_RESULT_FILE))
     log.info("Fio logs will be collected in '{}' directory".format(
         log_dir))
-    log.info("res_file: {}".format(res_file))
-    host.conn.scp_get(remotepath="FIO\\{}".format(config.FIO_RESULT_FILE),
-                                              localpath="{}".format(res_file))
-    conf_file = os.path.join(log_dir, "{}".format(
-        config.FIO_CONF_FILE))
-    log.info("conf_file: {}".format(conf_file))
-    host.conn.scp_get(remotepath="FIO\\{}".format(config.FIO_CONF_FILE),
-                      localpath="{}".format(conf_file))
+    output_directory = os.path.abspath(log_dir)
+    _, stdout, stderr = host.conn.execute_command(
+        "cmd /c echo y | pscp -pw {2} {4}{5} {1}@{0}:{3}" \
+            .format(CURRENT_HOST_IP, config.USERNAME, config.PASSWORD,
+                    output_directory, WIN_FIO_EXE_LOC, config.FIO_RESULT_FILE))
+    _, stdout, stderr = host.conn.execute_command(
+        "cmd /c echo y | pscp -pw {2} {4}{5} {1}@{0}:{3}" \
+            .format(CURRENT_HOST_IP, config.USERNAME, config.PASSWORD,
+                    output_directory, WIN_FIO_EXE_LOC, config.FIO_CONF_FILE))
     log.info(stdout)
 
 
-def start_fio_for_windows(host, ip):
+def start_fio_for_windows(host, ip, CURRENT_HOST_IP):
     """
         Start fio on host
         :param host_list: ssh connection to hosts(linux)
@@ -317,9 +323,9 @@ def start_fio_for_windows(host, ip):
     host.refresh_disk_list()
     log.info("Step 3. Choose file/block IO")
     if 'block_io' in config.LOAD_TYPE:
-        block_io_window(host, ip)
+        block_io_window(host, ip, CURRENT_HOST_IP)
     elif 'file_io' in config.LOAD_TYPE:
-        file_io_window(host, ip)
+        file_io_window(host, ip, CURRENT_HOST_IP)
 
 
 def create_vms(i):
@@ -358,6 +364,7 @@ def create_vms(i):
     # get vms ips
     attempt_for_ip = 1
     while (attempt_for_ip < 11):
+        time.sleep(60)
         ip = ovirt.get_vm_ip(vm.name)
         if ip:
             log.info("IP found for host {}".format(vm.name))
@@ -391,13 +398,14 @@ def create_vms(i):
         while ((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name)
                 == "")):
                 continue
+    time.sleep(60)
 
-    this_server = get_master_ip()
-    log.info(this_server)
+    CURRENT_HOST_IP = get_master_ip()
+    log.info(CURRENT_HOST_IP)
     if config.HOST_TYPE.lower() == 'linux':
         start_fio_for_linux(host, ip)
     elif config.HOST_TYPE.lower() == 'windows':
-        start_fio_for_windows(host, ip)
+        start_fio_for_windows(host, ip, CURRENT_HOST_IP)
 
 
 def main():
