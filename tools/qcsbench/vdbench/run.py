@@ -385,7 +385,6 @@ def main():
     for vm in vms:
         attempt_for_ip = 1
         while(attempt_for_ip < 11):
-            time.sleep(120)
             ip = ovirt.get_vm_ip(vm.name)
             if ip:
                 vm_ips.append(ip)
@@ -426,7 +425,6 @@ def main():
 
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
-        time.sleep(120)
         vdbench_deploy(host)
         host.change_hostname()
         host.refresh_disk_list()
