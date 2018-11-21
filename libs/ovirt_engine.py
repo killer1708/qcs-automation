@@ -326,7 +326,7 @@ class OvirtEngine:
         vms_service = self.connection.system_service().vms_service()
         vm = vms_service.list(search='name=%s'%vm_name)[0]
 
-        #Powering opp the VM if storage_type='CINDER'
+        #Powering off the VM if storage_type='CINDER'
         if(storage_type=='CINDER'):
             self.stop_vm(vm_name)
         # Locate the service that manages the disk attachments of the virtual
