@@ -243,57 +243,55 @@ def generate_paramfile(load_type, hosts, conf):
             newconf.append("hd=default,shell=ssh,user=admin,vdbench=C:\\{}"\
                            .format(WIN_VDBENCH_EXE_LOC))
         i = 1
-        for host in hosts:
-            host.fsd_params = []
-            # add hd params
-            hd_params = "hd={},system={}".format(str(host), str(host))
-            newconf.append(hd_params)
+        hosts.fsd_params = []
+        # add hd params
+        hd_params = "hd={},system={}".format(str(hosts), str(hosts))
+        newconf.append(hd_params)
 
-            # terminate if no destination location found for host
-            if not host.mount_locations:
-                log.info("Mount locations are {}".format(host.mount_locations))
-                raise Exception("No filestsem location found for host {}"\
-                                .format(str(host)))
-            log.info("Mount locations are {}".format(host.mount_locations))
-            for fs in host.mount_locations:
-                if(config.HOST_TYPE=="linux"):
-                    if conf.get('fsd_params'):
-                        temp = []
-                        for key, value in conf['fsd_params'].items():
-                            temp.append("{}={}".format(key, value))
-                        params = "fsd=fsd_{},anchor={},{}".format(
-                                  i, fs, ','.join(temp))
-                    else:
-                        params = "fsd=fsd_{},anchor={}".format(i, fs)
+        # terminate if no destination location found for host
+        if not hosts.mount_locations:
+            log.info("Mount locations are {}".format(hosts.mount_locations))
+            raise Exception("No filestsem location found for host {}"\
+                            .format(str(hosts)))
+        log.info("Mount locations are {}".format(hosts.mount_locations))
+        for fs in hosts.mount_locations:
+            if(config.HOST_TYPE=="linux"):
+                if conf.get('fsd_params'):
+                    temp = []
+                    for key, value in conf['fsd_params'].items():
+                        temp.append("{}={}".format(key, value))
+                    params = "fsd=fsd_{},anchor={},{}".format(
+                              i, fs, ','.join(temp))
                 else:
-                    if conf.get('fsd_params'):
-                        temp = []
-                        for key, value in conf['fsd_params'].items():
-                            temp.append("{}={}".format(key, value))
-                        params = "fsd=fsd_{},anchor={},{}".format(
-                                  i, fs[0], ','.join(temp))
-                    else:
-                        params = "fsd=fsd_{},anchor={}".format(i, fs[0])   
-                host.fsd_params.append(params)
-                # increment i
-                i += 1
-            # filesystem_locations for loop ends here
+                    params = "fsd=fsd_{},anchor={}".format(i, fs)
+            else:
+                if conf.get('fsd_params'):
+                    temp = []
+                    for key, value in conf['fsd_params'].items():
+                        temp.append("{}={}".format(key, value))
+                    params = "fsd=fsd_{},anchor={},{}".format(
+                              i, fs[0], ','.join(temp))
+                else:
+                    params = "fsd=fsd_{},anchor={}".format(i, fs[0])   
+            hosts.fsd_params.append(params)
+            # increment i
+            i += 1
+        # filesystem_locations for loop ends here
 
         fwd_params = []
-        for host in hosts:
-            for fsd_line in host.fsd_params:
-                fsd = fsd_line.split(',')[0].split('=')[1]
-                if conf.get('fwd_params'):
-                    temp = []
-                    for key, value in conf['fwd_params'].items():
-                        temp.append("{}={}".format(key, value))
-                    params = "fwd=fwd_{},fsd={},host={},{}"\
-                             .format(fsd, fsd, str(host), ','.join(temp))
-                else:
-                    params = "fwd=fwd_{},fsd={},host={}"\
-                             .format(fsd, fsd, str(host))
-                fwd_params.append(params)
-            # inner for loop ends here
+        for fsd_line in hosts.fsd_params:
+            fsd = fsd_line.split(',')[0].split('=')[1]
+            if conf.get('fwd_params'):
+                temp = []
+                for key, value in conf['fwd_params'].items():
+                    temp.append("{}={}".format(key, value))
+                params = "fwd=fwd_{},fsd={},host={},{}"\
+                         .format(fsd, fsd, str(hosts), ','.join(temp))
+            else:
+                params = "fwd=fwd_{},fsd={},host={}"\
+                         .format(fsd, fsd, str(hosts))
+            fwd_params.append(params)
+        # inner for loop ends here
         # outer for loop ends here
 
         if conf.get('rd_params'):
@@ -305,14 +303,13 @@ def generate_paramfile(load_type, hosts, conf):
             params = "rd=rd1,fwd=*"
         rd_params = [params]
 
-        # add all params
-        fsd_params = list()
-        for host in hosts:
-            fsd_params.extend(host.fsd_params)
-        all_params = fsd_params + fwd_params + rd_params
-        newconf.extend(all_params)
+    # add all params
+    fsd_params = list()
+    fsd_params.extend(hosts.fsd_params)
+    all_params = fsd_params + fwd_params + rd_params
+    newconf.extend(all_params)
 
-    # file io config generation ends here
+    #file io config generation ends here
 
     temp_paramfile = tempfile.NamedTemporaryFile(delete=False).name
     with open(temp_paramfile, 'w') as fh:
@@ -408,8 +405,6 @@ def main():
             log.error("Unknown host type - {}".format(config.HOST_TYPE))
         # update available disks
         host_list.append(host)
-    # get master host
-    master_host = host_list[0]
 
     # Add disks
     log.info("Step 2. Add disk to VM(s)")
@@ -425,12 +420,13 @@ def main():
 
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
+        #time.sleep(60)
         vdbench_deploy(host)
         host.change_hostname()
         host.refresh_disk_list()
         if config.LOAD_TYPE == 'file_io':
             if(config.HOST_TYPE == 'windows'):
-                create_window_file_io_file(master_host)
+                create_window_file_io_file(host)
                 host.create_file_system_on_disks(WIN_VDBENCH_EXE_LOC)
             if(config.HOST_TYPE == 'linux'):
                 host.create_file_system_on_disks()
@@ -459,72 +455,73 @@ def main():
                          .format(host.mount_locations))
         log.info("Disks are: {}".format(host.disk_list))
 
-    log.info("Configure master host and copy master ssh keys to all slaves")
-    configure_master_host(master_host, host_list ,config.HOST_TYPE)
+    for master_host in host_list:
+        log.info("Configure master host and copy master ssh keys to all slaves")
+        configure_master_host(master_host, host_list ,config.HOST_TYPE)
 
-    # create vdbench temp paramfile based upon load type
-    log.info("Step 3. Create vdbench temp paramfile based upon load type")
-    temp_paramfile = generate_paramfile(config.LOAD_TYPE, host_list,
+        # create vdbench temp paramfile based upon load type
+        log.info("Step 3. Create vdbench temp paramfile based upon load type")
+        temp_paramfile = generate_paramfile(config.LOAD_TYPE, master_host,
                                         config.WORKLOAD_INFO)
-    log.info(temp_paramfile)
+        log.info(temp_paramfile)
 
-    # copy parameter file to master host
-    if master_host.host_type == 'linux':
-        master_host.conn.scp_put(localpath=temp_paramfile,
-                                     remotepath=VDBENCH_EXE_LOC)
-        paramfile = "{}/{}".format(VDBENCH_EXE_LOC,
-                                   os.path.basename(temp_paramfile))
-        vdbench_exe = VDBENCH_EXE_LOC + "/vdbench"
-        logdir = "{}/output".format(VDBENCH_EXE_LOC)
-    else:
-        master_host.conn.scp_put(localpath=temp_paramfile,
-                                     remotepath=WIN_VDBENCH_EXE_LOC)
-        paramfile = "{}\\{}".format(WIN_VDBENCH_EXE_LOC,
-                                   os.path.basename(temp_paramfile))
-        vdbench_exe = WIN_VDBENCH_EXE_LOC + "\\vdbench.bat"
-        logdir = "{}\\output".format(WIN_VDBENCH_EXE_LOC)
+        # copy parameter file to master host
+        if master_host.host_type == 'linux':
+            master_host.conn.scp_put(localpath=temp_paramfile,
+                                         remotepath=VDBENCH_EXE_LOC)
+            paramfile = "{}/{}".format(VDBENCH_EXE_LOC,
+                                       os.path.basename(temp_paramfile))
+            vdbench_exe = VDBENCH_EXE_LOC + "/vdbench"
+            logdir = "{}/output".format(VDBENCH_EXE_LOC)
+        else:
+            master_host.conn.scp_put(localpath=temp_paramfile,
+                                         remotepath=WIN_VDBENCH_EXE_LOC)
+            paramfile = "{}\\{}".format(WIN_VDBENCH_EXE_LOC,
+                                       os.path.basename(temp_paramfile))
+            vdbench_exe = WIN_VDBENCH_EXE_LOC + "\\vdbench.bat"
+            logdir = "{}\\output".format(WIN_VDBENCH_EXE_LOC)
 
-    # remove templfile created
-    os.unlink(temp_paramfile)
+        # remove templfile created
+        os.unlink(temp_paramfile)
 
-    # prepare vdbench command
-    if(config.HOST_TYPE == 'linux'):
-        cmd = '{} -f {} -o {}'.format(vdbench_exe, paramfile, logdir)
-    else:
-        cmd = 'cmd /c C:\\{} -f C:\\{} -o C:\\{}'.format(vdbench_exe, paramfile, logdir)
-    if config.DATA_VALIDATION:
-        cmd = "{} -v".format(cmd)
-    log.info("Step 4. Start the vdbench workload")
-    status, stdout, stderr = master_host.conn.execute_command(cmd)
-    if status:
-        log.info(stdout)
-        log.error(stderr)
-    else:
-        log.info("VDBench completed successfully.")
-
-    # Collect logs
-    log_dir = os.path.join(log_dir, str(master_host))
-    if not os.path.isdir(log_dir):
-        os.makedirs(log_dir)
-    if(config.HOST_TYPE == 'linux'):
-        master_host.conn.scp_get(remotepath=logdir,
-                                     localpath=log_dir, recursive=True)
-    if(config.HOST_TYPE == 'windows'):
-        cmd = 'cmd /c echo y | pscp -r -pw '+str(config.PASSWORD)+' C:\\vdbench\\output '\
-               +str(config.USERNAME)+'@'+get_current_host_ip()+':'+os.popen('pwd').read()[:-1]+'/output/'+str(master_host)
+        # prepare vdbench command
+        if(config.HOST_TYPE == 'linux'):
+            cmd = '{} -f {} -o {}'.format(vdbench_exe, paramfile, logdir)
+        else:
+            cmd = 'cmd /c C:\\{} -f C:\\{} -o C:\\{}'.format(vdbench_exe, paramfile, logdir)
+        if config.DATA_VALIDATION:
+            cmd = "{} -v".format(cmd)
+        log.info("Step 4. Start the vdbench workload")
         status, stdout, stderr = master_host.conn.execute_command(cmd)
+        if status:
+            log.info(stdout)
+            log.error(stderr)
+        else:
+            log.info("VDBench completed successfully.")
 
-    log.info("Collected vdbench logs into {}".format(log_dir))
+        # Collect logs
+        log_dir = os.path.join(log_dir, str(master_host))
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+        if(config.HOST_TYPE == 'linux'):
+            master_host.conn.scp_get(remotepath=logdir,
+                                         localpath=log_dir, recursive=True)
+        if(config.HOST_TYPE == 'windows'):
+            cmd = 'cmd /c echo y | pscp -r -pw '+str(config.PASSWORD)+' C:\\vdbench\\output '\
+                +str(config.USERNAME)+'@'+get_current_host_ip()+':'+os.popen('pwd').read()[:-1]+'/output/'+str(master_host)
+            status, stdout, stderr = master_host.conn.execute_command(cmd)
 
-    # Cleanup paramfile from master host
-    ovirt.close_connection()
-    log.info("Cleaning up paramfile on master host")
-    if(config.HOST_TYPE == 'linux'):
-        cmd = "rm -f {}".format(paramfile)
-        _, _, _ = master_host.conn.execute_command(cmd)
-    else:
-        cmd = "cmd /c del C:\\{}".format(paramfile)
-        _, _, _ = master_host.conn.execute_command(cmd)
+        log.info("Collected vdbench logs into {}".format(log_dir))
+
+        # Cleanup paramfile from master host
+        ovirt.close_connection()
+        log.info("Cleaning up paramfile on master host")
+        if(config.HOST_TYPE == 'linux'):
+            cmd = "rm -f {}".format(paramfile)
+            _, _, _ = master_host.conn.execute_command(cmd)
+        else:
+            cmd = "cmd /c del C:\\{}".format(paramfile)
+            _, _, _ = master_host.conn.execute_command(cmd)
 
 if __name__ == '__main__':
     main()
