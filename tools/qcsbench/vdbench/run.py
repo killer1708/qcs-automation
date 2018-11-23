@@ -172,39 +172,38 @@ def generate_paramfile(load_type, hosts, conf):
         newconf = list() 
         i = 1
         sd_params = []
-        for host in hosts:
-            # add hd params
-            if(config.HOST_TYPE == 'linux'):
-                hd_params = "hd={},shell=ssh,system={},user=root,vdbench={}"\
-                    .format(str(host),
-                            str(host),
-                            VDBENCH_EXE_LOC)
-            else:
-                hd_params = "hd={},shell=ssh,system={},user=root,vdbench=C:\\{}"\
-                    .format(str(host),
-                            str(host),
-                            WIN_VDBENCH_EXE_LOC) 
-            newconf.append(hd_params)
+        # add hd params
+        if(config.HOST_TYPE == 'linux'):
+            hd_params = "hd={},shell=ssh,system={},user=root,vdbench={}"\
+                .format(str(hosts),
+                        str(hosts),
+                        VDBENCH_EXE_LOC)
+        else:
+            hd_params = "hd={},shell=ssh,system={},user=root,vdbench=C:\\{}"\
+                .format(str(hosts),
+                        str(hosts),
+                        WIN_VDBENCH_EXE_LOC) 
+        newconf.append(hd_params)
 
-            # terminate if no disk found for a host
-            if not host.disks:
-                log.info("Disks are: {}".format(host.disks))
-                raise Exception("No disks found for host {}".format(
-                    str(host)))
-            for disk in host.disks:
-                if conf.get('sd_params'):
-                    temp = []
-                    for key, value in conf['sd_params'].items():
-                        temp.append("{}={}".format(key, value))
-                    params = "sd=sd_{},host={},lun={},{}".format(
-                              i, str(host), disk, ','.join(temp))
-                else:
-                    params = "sd=sd_{},host={},lun={}".format(
-                              i, str(host), disk)
-                sd_params.append(params)
-                # increment i
-                i += 1
-            # disk for loop ends here
+        # terminate if no disk found for a host
+        if not hosts.disks:
+            log.info("Disks are: {}".format(hosts.disks))
+            raise Exception("No disks found for host {}".format(
+                str(hosts)))
+        for disk in hosts.disks:
+            if conf.get('sd_params'):
+                temp = []
+                for key, value in conf['sd_params'].items():
+                    temp.append("{}={}".format(key, value))
+                params = "sd=sd_{},host={},lun={},{}".format(
+                          i, str(hosts), disk, ','.join(temp))
+            else:
+                params = "sd=sd_{},host={},lun={}".format(
+                          i, str(hosts), disk)
+            sd_params.append(params)
+            # increment i
+            i += 1
+        # disk for loop ends here
 
         wd_params = []
         for sd_line in sd_params:
@@ -303,11 +302,11 @@ def generate_paramfile(load_type, hosts, conf):
             params = "rd=rd1,fwd=*"
         rd_params = [params]
 
-    # add all params
-    fsd_params = list()
-    fsd_params.extend(hosts.fsd_params)
-    all_params = fsd_params + fwd_params + rd_params
-    newconf.extend(all_params)
+        # add all params
+        fsd_params = list()
+        fsd_params.extend(hosts.fsd_params)
+        all_params = fsd_params + fwd_params + rd_params
+        newconf.extend(all_params)
 
     #file io config generation ends here
 
@@ -420,7 +419,7 @@ def main():
 
     log.info("Deploy vdbench on all the hosts")
     for host in host_list:
-        #time.sleep(60)
+        #time.sleep(120)
         vdbench_deploy(host)
         host.change_hostname()
         host.refresh_disk_list()
