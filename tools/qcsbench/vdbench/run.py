@@ -9,6 +9,7 @@ import sys
 import time
 import tempfile
 import subprocess
+import threading
 
 # from qcs-automation libs
 from nodes.node import Linux, Windows
@@ -333,6 +334,148 @@ def get_current_host_ip():
     ip = ip.decode(encoding='UTF-8',errors='strict')
     return ip.rstrip('\n')
 
+def execute_vdbench(i):
+    log_dir = config.LOG_DIR
+    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+                        config.OVIRT_ENGINE_PASS)
+    log.info("Remove existing vms if any")
+    # search if vm is already present
+    vm = ovirt.search_vm(config.VM_NAME + str(i))
+    if vm:
+        # stop the vm
+        ovirt.stop_vm(config.VM_NAME + str(i))
+        # remove vm
+        ovirt.remove_vm(config.VM_NAME + str(i))
+    log.info("Step 1. Creating {} VM(s)".format(config.SLAVE_VM_COUNT))
+    vm_name = config.VM_NAME + str(i)
+    vm = ovirt.create_vm_from_template(vm_name,
+                                       config.CLUSTER_NAME,
+                                       config.TEMPLATE_NAME,
+                                       config.TEMPLATE_DS)
+    attempt_for_ip = 1
+    while(attempt_for_ip < 11):
+        ip = ovirt.get_vm_ip(vm.name)
+        if ip:
+            log.info("IP found for host {}".format(vm.name))
+            break
+        attempt_for_ip += 1
+        if(attempt_for_ip == 11):
+            log.critical("No IP found for host {}".format(vm.name))
+            sys.exit(1)
+        time.sleep(30)
+    log.info("VM IP is: {}".format(ip))
+    log.info("Creating host objects")
+    if config.HOST_TYPE.lower() == 'linux':
+        host = Linux(str(ip), config.SLAVE_UNAME, config.SLAVE_PASSWORD)
+    elif config.HOST_TYPE.lower() == 'windows':
+        host = Windows(str(ip), config.SLAVE_UNAME, config.SLAVE_PASSWORD)
+    else:
+        log.error("Unknown host type - {}".format(config.HOST_TYPE))
+    log.info("Step 2. Add disk to VM(s)")
+    for i in range(config.DISK_COUNT):
+        ovirt.add_disk(vm.name,
+            "disk_" + str(i),
+            config.DISK_SIZE_GB,
+            config.TEMPLATE_DS,
+            config.STORAGE_TYPE)
+        while((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name) == "")):
+            continue
+    log.info("Deploy vdbench on all the hosts")
+    #time.sleep(120)
+    vdbench_deploy(host)
+    host.change_hostname()
+    host.refresh_disk_list()
+    if config.LOAD_TYPE == 'file_io':
+        if(config.HOST_TYPE == 'windows'):
+            create_window_file_io_file(host)
+            host.create_file_system_on_disks(WIN_VDBENCH_EXE_LOC)
+        if(config.HOST_TYPE == 'linux'):
+            host.create_file_system_on_disks()
+        log.info("Filesystem locations available are - {}"\
+                  .format(host.filesystem_locations))
+        if(config.HOST_TYPE == 'linux'):
+            for i, location in enumerate(host.filesystem_locations):
+                mount_point = "/mnt/loc{}".format(i)
+                host.makedir(mount_point)
+                # mount formatted device on host system
+                cmd = "mount {} {}".format(location, mount_point)
+                status, stdout, _ = host.conn.execute_command(cmd)
+                if status:
+                    log.info(stdout)
+                    log.error("Unable to mount {} on {}"\
+                               .format(location, mount_point))
+                # append to mountpoints
+                host.mount_locations.append(mount_point)
+
+            log.info("Filesystem mount locations are {}"\
+                      .format(host.mount_locations))
+        else:
+            # append to mountpoints
+            host.mount_locations.append(host.filesystem_locations)
+            log.info("Filesystem mount locations are {}"\
+                      .format(host.mount_locations))
+    log.info("Disks are: {}".format(host.disk_list))
+    log.info("Configure  host and copy ssh keys to all slaves")
+    #configure_master_host(host, host_list ,config.HOST_TYPE)
+    # create vdbench temp paramfile based upon load type
+    log.info("Step 3. Create vdbench temp paramfile based upon load type")
+    temp_paramfile = generate_paramfile(config.LOAD_TYPE, host,
+                                    config.WORKLOAD_INFO)
+    log.info(temp_paramfile)
+    # copy parameter file to host
+    if host.host_type == 'linux':
+        host.conn.scp_put(localpath=temp_paramfile,
+                                     remotepath=VDBENCH_EXE_LOC)
+        paramfile = "{}/{}".format(VDBENCH_EXE_LOC,
+                                   os.path.basename(temp_paramfile))
+        vdbench_exe = VDBENCH_EXE_LOC + "/vdbench"
+        logdir = "{}/output".format(VDBENCH_EXE_LOC)
+    else:
+        host.conn.scp_put(localpath=temp_paramfile,
+                                     remotepath=WIN_VDBENCH_EXE_LOC)
+        paramfile = "{}\\{}".format(WIN_VDBENCH_EXE_LOC,
+                                    os.path.basename(temp_paramfile))
+        vdbench_exe = WIN_VDBENCH_EXE_LOC + "\\vdbench.bat"
+        logdir = "{}\\output".format(WIN_VDBENCH_EXE_LOC)
+    # remove templfile created
+    os.unlink(temp_paramfile)
+    # prepare vdbench command
+    if(config.HOST_TYPE == 'linux'):
+        cmd = '{} -f {} -o {}'.format(vdbench_exe, paramfile, logdir)
+    else:
+        cmd = 'cmd /c C:\\{} -f C:\\{} -o C:\\{}'.format(vdbench_exe, paramfile, logdir)
+    if config.DATA_VALIDATION:
+        cmd = "{} -v".format(cmd)
+    log.info("Step 4. Start the vdbench workload")
+    status, stdout, stderr = host.conn.execute_command(cmd)
+    if status:
+        log.info(stdout)
+        log.error(stderr)
+    else:
+        log.info("VDBench completed successfully.")
+    # Collect logs
+    log_dir = os.path.join(log_dir, ip)
+    if not os.path.isdir(log_dir):
+        os.makedirs(log_dir)
+    if(config.HOST_TYPE == 'linux'):
+        host.conn.scp_get(remotepath=logdir,
+                                     localpath=log_dir, recursive=True)
+    if(config.HOST_TYPE == 'windows'):
+        cmd = 'cmd /c echo y | pscp -r -pw '+str(config.PASSWORD)+' C:\\vdbench\\output '\
+            +str(config.USERNAME)+'@'+get_current_host_ip()+':'+os.popen('pwd').read()[:-1]+'/output/'+str(host)
+        status, stdout, stderr = host.conn.execute_command(cmd)
+    log.info("Collected vdbench logs into {}".format(log_dir))
+
+    # Cleanup paramfile from host
+    ovirt.close_connection()
+    log.info("Cleaning up paramfile on master host")
+    if(config.HOST_TYPE == 'linux'):
+        cmd = "rm -f {}".format(paramfile)
+        _, _, _ = host.conn.execute_command(cmd)
+    else:
+        cmd = "cmd /c del C:\\{}".format(paramfile)
+        _, _, _ = host.conn.execute_command(cmd)
+
 def main():
     """
     Standalone vdbench execution steps:
@@ -350,177 +493,22 @@ def main():
     log.info("Logs will be collected in '{}' directory".format(log_dir))
     log.info("logfile: {}".format(logfile))
 
-    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-                        config.OVIRT_ENGINE_PASS)
-
-    log.info("Remove existing vms if any")
+    jobs = []
     for i in range(config.SLAVE_VM_COUNT):
-        # search if vm is already present
-        vm = ovirt.search_vm(config.VM_NAME + str(i))
-        if vm:
-            # stop the vm
-            ovirt.stop_vm(config.VM_NAME + str(i))
-            # remove vm
-            ovirt.remove_vm(config.VM_NAME + str(i))
+        thread = threading.Thread(target=execute_vdbench, args=(i,))
+        jobs.append(thread)
 
-    log.info("Step 1. Creating {} VM(s)".format(config.SLAVE_VM_COUNT))
-    vms = list()
-    for i in range(config.SLAVE_VM_COUNT):
-        vm_name = config.VM_NAME + str(i)
-        vm = ovirt.create_vm_from_template(vm_name,
-                                           config.CLUSTER_NAME,
-                                           config.TEMPLATE_NAME,
-                                           config.TEMPLATE_DS)
-        vms.append(vm)
+    log.info(jobs)
 
-    #log.info("Sleeping for 1 minute for vm IP to be available.")
-    #time.sleep(60)
+    for j in jobs:
+        j.start()
+        log.info("Thread {}".format(j))
 
-    # get vm ips
-    vm_ips = list()
-    for vm in vms:
-        attempt_for_ip = 1
-        while(attempt_for_ip < 11):
-            ip = ovirt.get_vm_ip(vm.name)
-            if ip:
-                vm_ips.append(ip)
-                log.info("IP found for host {}".format(vm.name))
-                break
-            attempt_for_ip += 1
-            if(attempt_for_ip == 11):
-                log.critical("No IP found for host {}".format(vm.name))
-                sys.exit(1)
-            time.sleep(30)
-    log.info("VM IPs are: {}".format(vm_ips))
+    for j in jobs:
+        j.join()
 
-    log.info("Creating host objects") 
-    host_list = list()
-    for vm in vm_ips:
-        if config.HOST_TYPE.lower() == 'linux':
-            host = Linux(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
-        elif config.HOST_TYPE.lower() == 'windows':
-            host = Windows(vm, config.SLAVE_UNAME, config.SLAVE_PASSWORD)
-        else:
-            log.error("Unknown host type - {}".format(config.HOST_TYPE))
-        # update available disks
-        host_list.append(host)
+    log.info("List processing complete.")
 
-    # Add disks
-    log.info("Step 2. Add disk to VM(s)")
-    for vm in vms:
-        for i in range(config.DISK_COUNT):
-            ovirt.add_disk(vm.name,
-                "disk_" + str(i),
-                config.DISK_SIZE_GB,
-                config.TEMPLATE_DS,
-                config.STORAGE_TYPE)
-            while((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name) == "")):
-                continue
-
-    log.info("Deploy vdbench on all the hosts")
-    for host in host_list:
-        #time.sleep(120)
-        vdbench_deploy(host)
-        host.change_hostname()
-        host.refresh_disk_list()
-        if config.LOAD_TYPE == 'file_io':
-            if(config.HOST_TYPE == 'windows'):
-                create_window_file_io_file(host)
-                host.create_file_system_on_disks(WIN_VDBENCH_EXE_LOC)
-            if(config.HOST_TYPE == 'linux'):
-                host.create_file_system_on_disks()
-            log.info("Filesystem locations available are - {}"\
-                     .format(host.filesystem_locations))
-            if(config.HOST_TYPE == 'linux'):
-                for i, location in enumerate(host.filesystem_locations):
-                    mount_point = "/mnt/loc{}".format(i)
-                    host.makedir(mount_point)
-                    # mount formatted device on host system
-                    cmd = "mount {} {}".format(location, mount_point)
-                    status, stdout, _ = host.conn.execute_command(cmd)
-                    if status:
-                        log.info(stdout)
-                        log.error("Unable to mount {} on {}"\
-                                  .format(location, mount_point))
-                    # append to mountpoints
-                    host.mount_locations.append(mount_point)
-            
-                log.info("Filesystem mount locations are {}"\
-                         .format(host.mount_locations))
-            else:
-                # append to mountpoints
-                host.mount_locations.append(host.filesystem_locations)
-                log.info("Filesystem mount locations are {}"\
-                         .format(host.mount_locations))
-        log.info("Disks are: {}".format(host.disk_list))
-
-    for master_host in host_list:
-        log.info("Configure master host and copy master ssh keys to all slaves")
-        configure_master_host(master_host, host_list ,config.HOST_TYPE)
-
-        # create vdbench temp paramfile based upon load type
-        log.info("Step 3. Create vdbench temp paramfile based upon load type")
-        temp_paramfile = generate_paramfile(config.LOAD_TYPE, master_host,
-                                        config.WORKLOAD_INFO)
-        log.info(temp_paramfile)
-
-        # copy parameter file to master host
-        if master_host.host_type == 'linux':
-            master_host.conn.scp_put(localpath=temp_paramfile,
-                                         remotepath=VDBENCH_EXE_LOC)
-            paramfile = "{}/{}".format(VDBENCH_EXE_LOC,
-                                       os.path.basename(temp_paramfile))
-            vdbench_exe = VDBENCH_EXE_LOC + "/vdbench"
-            logdir = "{}/output".format(VDBENCH_EXE_LOC)
-        else:
-            master_host.conn.scp_put(localpath=temp_paramfile,
-                                         remotepath=WIN_VDBENCH_EXE_LOC)
-            paramfile = "{}\\{}".format(WIN_VDBENCH_EXE_LOC,
-                                       os.path.basename(temp_paramfile))
-            vdbench_exe = WIN_VDBENCH_EXE_LOC + "\\vdbench.bat"
-            logdir = "{}\\output".format(WIN_VDBENCH_EXE_LOC)
-
-        # remove templfile created
-        os.unlink(temp_paramfile)
-
-        # prepare vdbench command
-        if(config.HOST_TYPE == 'linux'):
-            cmd = '{} -f {} -o {}'.format(vdbench_exe, paramfile, logdir)
-        else:
-            cmd = 'cmd /c C:\\{} -f C:\\{} -o C:\\{}'.format(vdbench_exe, paramfile, logdir)
-        if config.DATA_VALIDATION:
-            cmd = "{} -v".format(cmd)
-        log.info("Step 4. Start the vdbench workload")
-        status, stdout, stderr = master_host.conn.execute_command(cmd)
-        if status:
-            log.info(stdout)
-            log.error(stderr)
-        else:
-            log.info("VDBench completed successfully.")
-
-        # Collect logs
-        log_dir = os.path.join(log_dir, str(master_host))
-        if not os.path.isdir(log_dir):
-            os.makedirs(log_dir)
-        if(config.HOST_TYPE == 'linux'):
-            master_host.conn.scp_get(remotepath=logdir,
-                                         localpath=log_dir, recursive=True)
-        if(config.HOST_TYPE == 'windows'):
-            cmd = 'cmd /c echo y | pscp -r -pw '+str(config.PASSWORD)+' C:\\vdbench\\output '\
-                +str(config.USERNAME)+'@'+get_current_host_ip()+':'+os.popen('pwd').read()[:-1]+'/output/'+str(master_host)
-            status, stdout, stderr = master_host.conn.execute_command(cmd)
-
-        log.info("Collected vdbench logs into {}".format(log_dir))
-
-        # Cleanup paramfile from master host
-        ovirt.close_connection()
-        log.info("Cleaning up paramfile on master host")
-        if(config.HOST_TYPE == 'linux'):
-            cmd = "rm -f {}".format(paramfile)
-            _, _, _ = master_host.conn.execute_command(cmd)
-        else:
-            cmd = "cmd /c del C:\\{}".format(paramfile)
-            _, _, _ = master_host.conn.execute_command(cmd)
 
 if __name__ == '__main__':
     main()
