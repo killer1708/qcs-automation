@@ -199,7 +199,8 @@ def block_io_window(host, ip, CURRENT_HOST_IP):
     #                                      path_load_file="FIO\\{}".format
     #                                      (config.FIO_CONF_FILE))
     log.info(host.disk_list)
-    shutil.copyfile("sample_test_fio.fio", "{}".format(config.FIO_CONF_FILE))
+    file_name = str(ip) + "{}".format(config.FIO_CONF_FILE)
+    shutil.copyfile("sample_test_fio.fio", filename)
     for disk in host.disk_list:
         log.info(disk)
         log.info("disk= {} ".format(disk))
@@ -267,7 +268,6 @@ def file_io_window(host, ip, CURRENT_HOST_IP):
 
         with open("{}".format(config.FIO_CONF_FILE), 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
-    time.sleep(60)
     host.conn.scp_put(localpath="{}".format(config.FIO_CONF_FILE),
                       remotepath="FIO")
     os.remove(file_name)
@@ -397,7 +397,6 @@ def create_vms(i):
                 == "")):
                 continue
 
-    time.sleep(60)
 
     CURRENT_HOST_IP = get_master_ip()
     log.info(CURRENT_HOST_IP)
