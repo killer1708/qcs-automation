@@ -256,7 +256,8 @@ def file_io_window(host, ip, CURRENT_HOST_IP):
     #                                     path_load_file="C:\\FIO\\{}".format(
     #                                     config.FIO_CONF_FILE))
     # start dynamo on host machine
-    shutil.copyfile("sample_file_io.fio", "{}".format(config.FIO_CONF_FILE))
+    file_name = str(ip) + "{}".format(config.FIO_CONF_FILE)
+    shutil.copyfile("sample_file_io.fio", file_name)
     for disk in host.filesystem_locations:
         log.info("disk= {} ".format(disk))
         conf = configparser.RawConfigParser()
@@ -266,10 +267,10 @@ def file_io_window(host, ip, CURRENT_HOST_IP):
 
         with open("{}".format(config.FIO_CONF_FILE), 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
-
+    time.sleep(60)
     host.conn.scp_put(localpath="{}".format(config.FIO_CONF_FILE),
                       remotepath="FIO")
-    os.remove("{}".format(config.FIO_CONF_FILE))
+    os.remove(file_name)
     log.info("Step 4. Start fio load on file system device.")
     host.conn.execute_command("cmd /c cd {}".format(WIN_FIO_EXE_LOC))
     status, stdout, stderr = host.conn.execute_command("cmd /c fio {}{} "
@@ -341,9 +342,6 @@ def create_vms(i):
     ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
                         config.OVIRT_ENGINE_PASS)
 
-    log.info("Remove existing vms if any")
-
-    # search if vm is already present
     vm = ovirt.search_vm(config.VM_NAME + str(i))
     if vm:
         # stop the vm
@@ -408,6 +406,11 @@ def create_vms(i):
     elif config.HOST_TYPE.lower() == 'windows':
         start_fio_for_windows(host, ip, CURRENT_HOST_IP)
 
+    # stop the vm
+    ovirt.stop_vm(vm.name)
+    # remove vm
+    ovirt.remove_vm(vm.name)
+
 def main():
     if os.path.isdir(config.LOG_DIR):
         shutil.rmtree(config.LOG_DIR)
@@ -438,3 +441,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
