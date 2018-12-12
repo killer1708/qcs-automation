@@ -193,14 +193,14 @@ def start_fio_for_linux(host, ip):
         file_io_linux(host, ip)
 
 
-def block_io_window(host, ip, CURRENT_HOST_IP):
+def block_io_window(host, ip, CURRENT_HOST_IP, i):
     # start dynamo on host machine
     # host.conn.edit_load_file_for_block_io(host.disk_list,
     #                                      path_load_file="FIO\\{}".format
     #                                      (config.FIO_CONF_FILE))
     log.info(host.disk_list)
-    file_name = str(ip) + "{}".format(config.FIO_CONF_FILE)
-    shutil.copyfile("sample_test_fio.fio", filename)
+    file_name = "{}".format(config.FIO_CONF_FILE)
+    shutil.copyfile("sample_test_fio_wind.fio", file_name)
     for disk in host.disk_list:
         log.info(disk)
         log.info("disk= {} ".format(disk))
@@ -209,18 +209,18 @@ def block_io_window(host, ip, CURRENT_HOST_IP):
         conf.add_section(sec)
         conf.set(sec, 'filename', disk)
 
-        with open("{}".format(config.FIO_CONF_FILE), 'a+') as configfile:
+        with open(file_name, 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
 
-    host.conn.scp_put(localpath="{}".format(config.FIO_CONF_FILE),
+    host.conn.scp_put(localpath=file_name,
                       remotepath="FIO")
-    os.remove("{}".format(config.FIO_CONF_FILE))
+    os.remove(file_name)
     log.info("Step 4. Start fio load on raw device.")
     status, stdout, stderr = host.conn.execute_command("cmd /c fio {}{} "
                                                        "--output={}{}"
                                                        .format(WIN_FIO_EXE_LOC,
                                                        os.path.basename
-                                                       (config.FIO_CONF_FILE),
+                                                       (file_name),
                                                        WIN_FIO_EXE_LOC,
                                                        os.path.basename(
                                                        config.FIO_RESULT_FILE)))
@@ -243,11 +243,11 @@ def block_io_window(host, ip, CURRENT_HOST_IP):
     _, stdout, stderr = host.conn.execute_command(
                "cmd /c echo y | pscp -pw {2} {4}{5} {1}@{0}:{3}" \
                .format(CURRENT_HOST_IP, config.USERNAME, config.PASSWORD,
-               output_directory, WIN_FIO_EXE_LOC, config.FIO_CONF_FILE))
+               output_directory, WIN_FIO_EXE_LOC, file_name))
     log.info(stdout)
 
 
-def file_io_window(host, ip, CURRENT_HOST_IP):
+def file_io_window(host, ip, CURRENT_HOST_IP, i):
     create_window_file_io_file(host)
     host.create_file_system_on_disks(config.TOOL_NAME)
     log.info("Filesystem locations available are - {}" \
@@ -257,8 +257,8 @@ def file_io_window(host, ip, CURRENT_HOST_IP):
     #                                     path_load_file="C:\\FIO\\{}".format(
     #                                     config.FIO_CONF_FILE))
     # start dynamo on host machine
-    file_name = str(ip) + "{}".format(config.FIO_CONF_FILE)
-    shutil.copyfile("sample_file_io.fio", file_name)
+    file_name = "{}".format(config.FIO_CONF_FILE)
+    shutil.copyfile("sample_file_io_wind.fio", file_name)
     for disk in host.filesystem_locations:
         log.info("disk= {} ".format(disk))
         conf = configparser.RawConfigParser()
@@ -266,9 +266,10 @@ def file_io_window(host, ip, CURRENT_HOST_IP):
         conf.add_section(sec)
         conf.set(sec, 'directory', disk)
 
-        with open("{}".format(config.FIO_CONF_FILE), 'a+') as configfile:
+        with open("{}".format(file_name), 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
-    host.conn.scp_put(localpath="{}".format(config.FIO_CONF_FILE),
+    time.sleep(60)
+    host.conn.scp_put(localpath="{}".format(file_name),
                       remotepath="FIO")
     os.remove(file_name)
     log.info("Step 4. Start fio load on file system device.")
@@ -277,7 +278,7 @@ def file_io_window(host, ip, CURRENT_HOST_IP):
                                                        "--output={}{}"
                                                        .format(WIN_FIO_EXE_LOC,
                                                        os.path.basename
-                                                       (config.FIO_CONF_FILE),
+                                                       (file_name),
                                                        WIN_FIO_EXE_LOC,
                                                        os.path.basename(
                                                        config.FIO_RESULT_FILE)))
@@ -301,22 +302,23 @@ def file_io_window(host, ip, CURRENT_HOST_IP):
     _, stdout, stderr = host.conn.execute_command(
         "cmd /c echo y | pscp -pw {2} {4}{5} {1}@{0}:{3}" \
             .format(CURRENT_HOST_IP, config.USERNAME, config.PASSWORD,
-                    output_directory, WIN_FIO_EXE_LOC, config.FIO_CONF_FILE))
+                    output_directory, WIN_FIO_EXE_LOC, file_name))
     log.info(stdout)
 
 
-def start_fio_for_windows(host, ip, CURRENT_HOST_IP):
+def start_fio_for_windows(host, ip, CURRENT_HOST_IP, i):
     """
         Start fio on host
         :param host_list: ssh connection to hosts(linux)
     """
     # check if fio directory, result.txt and config file already exists.
     # then remove it.
+    file_name = str(ip) + "{}".format(config.FIO_CONF_FILE)
     host.conn.execute_command("cmd /c if not exist {} mkdir {}".format(
                               WIN_FIO_EXE_LOC, WIN_FIO_EXE_LOC))
     host.conn.execute_command("cmd /c if exist {}{} del {}{}".format(
-                              WIN_FIO_EXE_LOC, config.FIO_CONF_FILE,
-                              WIN_FIO_EXE_LOC, config.FIO_CONF_FILE))
+                              WIN_FIO_EXE_LOC, file_name,
+                              WIN_FIO_EXE_LOC, file_name))
     host.conn.execute_command("cmd /c if exist {}{} del {}{}"
                               .format(WIN_FIO_EXE_LOC, config.FIO_RESULT_FILE,
                               WIN_FIO_EXE_LOC, config.FIO_RESULT_FILE))
@@ -324,9 +326,9 @@ def start_fio_for_windows(host, ip, CURRENT_HOST_IP):
     host.refresh_disk_list()
     log.info("Step 3. Choose file/block IO")
     if 'block_io' in config.LOAD_TYPE:
-        block_io_window(host, ip, CURRENT_HOST_IP)
+        block_io_window(host, ip, CURRENT_HOST_IP, i)
     elif 'file_io' in config.LOAD_TYPE:
-        file_io_window(host, ip, CURRENT_HOST_IP)
+        file_io_window(host, ip, CURRENT_HOST_IP, i)
 
 
 def create_vms(i):
@@ -397,18 +399,20 @@ def create_vms(i):
                 == "")):
                 continue
 
+    time.sleep(120)
 
     CURRENT_HOST_IP = get_master_ip()
     log.info(CURRENT_HOST_IP)
     if config.HOST_TYPE.lower() == 'linux':
         start_fio_for_linux(host, ip)
     elif config.HOST_TYPE.lower() == 'windows':
-        start_fio_for_windows(host, ip, CURRENT_HOST_IP)
+        start_fio_for_windows(host, ip, CURRENT_HOST_IP, i)
 
     # stop the vm
     ovirt.stop_vm(vm.name)
     # remove vm
     ovirt.remove_vm(vm.name)
+    ovirt.close_connection()
 
 def main():
     if os.path.isdir(config.LOG_DIR):
