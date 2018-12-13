@@ -193,13 +193,13 @@ def start_fio_for_linux(host, ip):
         file_io_linux(host, ip)
 
 
-def block_io_window(host, ip, CURRENT_HOST_IP, i):
+def block_io_window(host, ip, CURRENT_HOST_IP, thread_id):
     # start dynamo on host machine
     # host.conn.edit_load_file_for_block_io(host.disk_list,
     #                                      path_load_file="FIO\\{}".format
     #                                      (config.FIO_CONF_FILE))
     log.info(host.disk_list)
-    file_name = "{}".format(config.FIO_CONF_FILE)
+    file_name = str(thread_id) + "_{}".format(config.FIO_CONF_FILE)
     shutil.copyfile("sample_test_fio_wind.fio", file_name)
     for disk in host.disk_list:
         log.info(disk)
@@ -212,8 +212,7 @@ def block_io_window(host, ip, CURRENT_HOST_IP, i):
         with open(file_name, 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
 
-    host.conn.scp_put(localpath=file_name,
-                      remotepath="FIO")
+    host.conn.scp_put(localpath=file_name, remotepath="FIO")
     os.remove(file_name)
     log.info("Step 4. Start fio load on raw device.")
     status, stdout, stderr = host.conn.execute_command("cmd /c fio {}{} "
@@ -247,7 +246,7 @@ def block_io_window(host, ip, CURRENT_HOST_IP, i):
     log.info(stdout)
 
 
-def file_io_window(host, ip, CURRENT_HOST_IP, i):
+def file_io_window(host, ip, CURRENT_HOST_IP, thread_id):
     create_window_file_io_file(host)
     host.create_file_system_on_disks(config.TOOL_NAME)
     log.info("Filesystem locations available are - {}" \
@@ -257,7 +256,7 @@ def file_io_window(host, ip, CURRENT_HOST_IP, i):
     #                                     path_load_file="C:\\FIO\\{}".format(
     #                                     config.FIO_CONF_FILE))
     # start dynamo on host machine
-    file_name = "{}".format(config.FIO_CONF_FILE)
+    file_name = str(thread_id) + "_{}".format(config.FIO_CONF_FILE)
     shutil.copyfile("sample_file_io_wind.fio", file_name)
     for disk in host.filesystem_locations:
         log.info("disk= {} ".format(disk))
@@ -268,9 +267,8 @@ def file_io_window(host, ip, CURRENT_HOST_IP, i):
 
         with open("{}".format(file_name), 'a+') as configfile:
             conf.write(configfile, space_around_delimiters=False)
-    time.sleep(60)
-    host.conn.scp_put(localpath="{}".format(file_name),
-                      remotepath="FIO")
+
+    host.conn.scp_put(localpath="{}".format(file_name), remotepath="FIO")
     os.remove(file_name)
     log.info("Step 4. Start fio load on file system device.")
     host.conn.execute_command("cmd /c cd {}".format(WIN_FIO_EXE_LOC))
@@ -306,14 +304,14 @@ def file_io_window(host, ip, CURRENT_HOST_IP, i):
     log.info(stdout)
 
 
-def start_fio_for_windows(host, ip, CURRENT_HOST_IP, i):
+def start_fio_for_windows(host, ip, CURRENT_HOST_IP, thread_id):
     """
         Start fio on host
         :param host_list: ssh connection to hosts(linux)
     """
     # check if fio directory, result.txt and config file already exists.
     # then remove it.
-    file_name = str(ip) + "{}".format(config.FIO_CONF_FILE)
+    file_name = str(thread_id) + "{}".format(config.FIO_CONF_FILE)
     host.conn.execute_command("cmd /c if not exist {} mkdir {}".format(
                               WIN_FIO_EXE_LOC, WIN_FIO_EXE_LOC))
     host.conn.execute_command("cmd /c if exist {}{} del {}{}".format(
@@ -326,12 +324,12 @@ def start_fio_for_windows(host, ip, CURRENT_HOST_IP, i):
     host.refresh_disk_list()
     log.info("Step 3. Choose file/block IO")
     if 'block_io' in config.LOAD_TYPE:
-        block_io_window(host, ip, CURRENT_HOST_IP, i)
+        block_io_window(host, ip, CURRENT_HOST_IP, thread_id)
     elif 'file_io' in config.LOAD_TYPE:
-        file_io_window(host, ip, CURRENT_HOST_IP, i)
+        file_io_window(host, ip, CURRENT_HOST_IP, thread_id)
 
 
-def create_vms(i):
+def create_vms(thread_id):
     """
     Standalone fio execution steps:
     precondition: update config.py as per need
@@ -344,17 +342,16 @@ def create_vms(i):
     ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
                         config.OVIRT_ENGINE_PASS)
 
-    vm = ovirt.search_vm(config.VM_NAME + str(i))
+    vm = ovirt.search_vm(config.VM_NAME + str(thread_id))
     if vm:
         # stop the vm
-        ovirt.stop_vm(config.VM_NAME + str(i))
+        ovirt.stop_vm(config.VM_NAME + str(thread_id))
         # remove vm
-        ovirt.remove_vm(config.VM_NAME + str(i))
+        ovirt.remove_vm(config.VM_NAME + str(thread_id))
 
     log.info("Step 1. Creating {} VM(s)".format(config.SLAVE_VM_COUNT))
-    vms = list()
 
-    vm_name = config.VM_NAME + str(i)
+    vm_name = config.VM_NAME + str(thread_id)
     vm = ovirt.create_vm_from_template(vm_name,
                                        config.CLUSTER_NAME,
                                        config.TEMPLATE_NAME,
@@ -364,7 +361,6 @@ def create_vms(i):
     # get vms ips
     attempt_for_ip = 1
     while (attempt_for_ip < 11):
-        time.sleep(60)
         ip = ovirt.get_vm_ip(vm.name)
         if ip:
             log.info("IP found for host {}".format(vm.name))
@@ -399,14 +395,12 @@ def create_vms(i):
                 == "")):
                 continue
 
-    time.sleep(120)
-
     CURRENT_HOST_IP = get_master_ip()
     log.info(CURRENT_HOST_IP)
     if config.HOST_TYPE.lower() == 'linux':
         start_fio_for_linux(host, ip)
     elif config.HOST_TYPE.lower() == 'windows':
-        start_fio_for_windows(host, ip, CURRENT_HOST_IP, i)
+        start_fio_for_windows(host, ip, CURRENT_HOST_IP, thread_id)
 
     # stop the vm
     ovirt.stop_vm(vm.name)
@@ -426,8 +420,8 @@ def main():
     log.info("logfile: {}".format(logfile))
 
     jobs = []
-    for i in range(config.SLAVE_VM_COUNT):
-        thread = threading.Thread(target=create_vms, args=(i,))
+    for thread_id in range(config.SLAVE_VM_COUNT):
+        thread = threading.Thread(target=create_vms, args=(thread_id,))
         jobs.append(thread)
 
     log.info(jobs)
