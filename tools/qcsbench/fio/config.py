@@ -1,6 +1,6 @@
 # Ovirt Engine and host details
 # ovirt server ip
-OVIRT_ENGINE_IP = '192.168.105.61'
+OVIRT_ENGINE_IP = '192.168.105.196'
 
 # ovirt user name
 OVIRT_ENGINE_UNAME = 'admin@internal'
@@ -12,7 +12,7 @@ OVIRT_ENGINE_PASS = 'admin'
 CLUSTER_NAME='Default'
 
 # vm template name in ovirt
-TEMPLATE_NAME='champ'
+TEMPLATE_NAME='champ1'
 
 # template data domain
 TEMPLATE_DS='qcinder'
@@ -22,13 +22,13 @@ VM_NAME='qcs_fio_vm'
 
 # slave vm details
 # number vm to be create
-SLAVE_VM_COUNT= 1
+SLAVE_VM_COUNT= 2
 # slave vm type: linux|windows
-HOST_TYPE = 'windows'
+HOST_TYPE = 'linux'
 # vm user name
-SLAVE_UNAME='admin'
+SLAVE_UNAME='root'
 # vm password
-SLAVE_PASSWORD='admin'
+SLAVE_PASSWORD='master#123'
 
 # disk details
 # Number of disks you want to add to individual vm.
@@ -48,22 +48,22 @@ PASSWORD = 'master#123'
 # based on load type fio configuration file will be selected :-
 # for block_io give the value of FIO_CONF_FILE = "test_fio.fio"
 # for file_io give the value of FIO_CONF_FILE = "param_file_io.fio"
-"""
-LOAD_TYPE = 'block_io'
+
+LOAD_TYPE = 'file_io'
 # fio config file
-FIO_CONF_FILE = "test_fio.fio"
-"""
+FIO_CONF_FILE = "param_file_io.fio"
+
 
 # specify load details for windows
 # LOAD_TYPE possible values are - block_io and file_io
 # based on load type fio configuration file will be selected :-
 # for block_io give the value of FIO_CONF_FILE = "test_fio_wind.fio"
 # for file_io give the value of FIO_CONF_FILE = "param_file_io_wind.fio"
-
-LOAD_TYPE = 'file_io'
+"""
+LOAD_TYPE = 'block_io'
 # fio conf file
-FIO_CONF_FILE = "param_file_io_wind.fio"
-
+FIO_CONF_FILE = "test_fio_wind.fio"
+"""
 # log level
 LOG_LEVEL = "DEBUG"
 
