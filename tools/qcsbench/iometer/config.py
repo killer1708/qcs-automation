@@ -1,38 +1,41 @@
 # Ovirt Engine and host details
 
 # ovirt server ip
-OVIRT_ENGINE_IP = '192.168.103.65'
+OVIRT_ENGINE_IP = '192.168.105.196'
 
 # ovirt server name
 OVIRT_ENGINE_UNAME = 'admin@internal'
 
 # ovirt server password
-OVIRT_ENGINE_PASS = 'master@123'
+OVIRT_ENGINE_PASS = 'admin'
 
 # ovirt cluster nMW
-CLUSTER_NAME='Default'
+CLUSTER_NAME = 'Default'
 
 # automation template name
-TEMPLATE_NAME='automation_template_for_qcsbench_tool'
+TEMPLATE_NAME = 'champ'
 
 # ovirt storage name
-TEMPLATE_DS='DATA_DOMAIN'
+TEMPLATE_DS = 'qcinder'
 
 # vm name for creating vm on ovirt
-VM_NAME='qcs_iometer_vm'
+VM_NAME = 'qcs_iometer_vm'
 
 # slave vm details
 # number of vm to create
 SLAVE_VM_COUNT=1
 # vm user name
-SLAVE_UNAME='root'
+#SLAVE_UNAME='root'
+SLAVE_UNAME ='admin'
 # vm password
-SLAVE_PASSWORD='master@123'
+#SLAVE_PASSWORD='master@123'
+SLAVE_PASSWORD ='admin'
 # slave vm host type, possible values - linux|windows
-HOST_TYPE = 'linux'
+#HOST_TYPE = 'linux'
+HOST_TYPE = 'windows'
 # load type on slave vms, possible values - block_io|file_io
-LOAD_TYPE = 'file_io'
-#LOAD_TYPE = 'block_io'
+#LOAD_TYPE = 'file_io'
+LOAD_TYPE = 'block_io'
 
 # workload info
 WORKLOAD_INFO = {
@@ -45,7 +48,7 @@ WORKLOAD_INFO = {
 
 # ADD Disk details
 # number of disk to add
-DISK_COUNT=1
+DISK_COUNT = 1
 # disk name
 DISK_NAME='user_disk'
 # disk size
@@ -56,11 +59,12 @@ DISK_SIZE_GB = 50
 CURRENT_UNAME='msys'
 # password
 CURRENT_PASSWD='msys#123'
-
+#CURRENT_PASSWD='master#123'
 # dynamo path from copy
 LOCAL_PATH = 'dynamo'
 # dynamo path to copy on remote machine
-REMOTE_PATH = '/root/dynamo'
+#REMOTE_PATH = '/root/dynamo'
+REMOTE_PATH = 'C:\\dynamo'
 
 # Iometer server credential
 # Iometer server ip
@@ -73,6 +77,7 @@ IOMETER_PASSWD = 'admin'
 
 # Iometer exe location
 IOMETER_SDK = "C:\\Users\\msys\\Desktop\\iometer_sdk\\"
+#IOMETER_SDK = "C:\\iometer\\"
 # Iometer config file path
 IOMETER_CONFIG_FILE = "test_iometer.icf"
 # IOMETER output dir
@@ -80,9 +85,16 @@ IOMETER_OUTPUT_DIR = "output"
 # IOMeter result file name
 IOMETER_RESULT_FILE_NAME = "result.csv"
 
+WIN_IOMETER_EXC_LOC = "iometer"
+
+
 # output log direcctory
 LOG_DIR = "output"
 LOG_LEVEL = "DEBUG"
 
 #Base IOmeter file name
 BASE_IOMETER_FILE = "iometer.icf"
+
+#Storage_Type either it can be IMAGE or CINDER
+#STORAGE_TYPE = "IMAGE"
+STORAGE_TYPE = "CINDER"
