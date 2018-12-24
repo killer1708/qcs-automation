@@ -223,6 +223,7 @@ class Windows(Node):
 
     def _get_disk_list(self):
         disks = list()
+        disk_exclude = ['DeviceID','PHYSICALDRIVE0']
         # issue WMIC command to get disk list
         attempt=1
         while(attempt<10):
@@ -236,11 +237,17 @@ class Windows(Node):
                 sys.exit()
             time.sleep(10)
         # collect useful disks
-        for disk in range(4,len(stdout)):
+        for disk in range(len(stdout)):
+            disk_exist = True
             if(stdout[disk] == ''):
                 continue
             else:
-                disks.append(stdout[disk][:18])
+                for value in disk_exclude:
+                    if(value in stdout[disk]):
+                        disk_exist = False
+                        break
+                if(disk_exist == True):
+                    disks.append(stdout[disk][:18])
         # return available disks
         return disks 
 
@@ -285,8 +292,10 @@ class Windows(Node):
             log.info(stdout)
             if (tool_name == 'vdbench'):
                 partition_name = "C:\\mountpoint"
-            else:
+            elif (tool_name == 'FIO'):
                 partition_name = "C\\:\\mountpoint"
+            else:
+                partition_name = 'C:\\mountpoint\\'
             # append to available file system list
             self.filesystem_locations.append(partition_name)
 
