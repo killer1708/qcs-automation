@@ -338,7 +338,7 @@ class OvirtEngine:
         # Note that the size of the disk, the `provisioned_size` attribute, is
         # specified in bytes, so to create a disk of 10 GiB the value should
         # be 10 * 2^30.
-        if(storage_type=='CINDER'):
+        if((storage_type=='CINDER')and(disk_name=='disk_0')):
             disk_attachment = disk_attachments_service.add(
                 types.DiskAttachment(
                     disk=types.Disk(
@@ -359,6 +359,27 @@ class OvirtEngine:
                     active=True,
                 ),
             )
+        elif(storage_type=='CINDER'):
+            disk_attachment = disk_attachments_service.add(
+                types.DiskAttachment(
+                    disk=types.Disk(
+                        name='%s'%disk_name,
+                        description='%s'%disk_name,
+                        format=types.DiskFormat.COW,
+                        provisioned_size=disk_size_gb * 2**30,
+                        storage_domains=[
+                            types.StorageDomain(
+                               name='%s'%datastore,
+                            ),
+                        ],
+                        openstack_volume_type=types.OpenStackVolumeType(
+                           name="cinder_pool",),
+                    ),
+                    interface=types.DiskInterface.VIRTIO_SCSI,
+                    bootable=False,
+                    active=True,
+                ),
+            )                
         else:
              disk_attachment = disk_attachments_service.add(
                 types.DiskAttachment(
