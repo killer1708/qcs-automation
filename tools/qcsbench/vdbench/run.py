@@ -467,7 +467,7 @@ def execute_vdbench(i):
     log.info("Collected vdbench logs into {}".format(log_dir))
 
     # Cleanup paramfile from host
-    ovirt.close_connection()
+    
     log.info("Cleaning up paramfile on master host")
     if(config.HOST_TYPE == 'linux'):
         cmd = "rm -f {}".format(paramfile)
@@ -475,6 +475,9 @@ def execute_vdbench(i):
     else:
         cmd = "cmd /c del C:\\{}".format(paramfile)
         _, _, _ = host.conn.execute_command(cmd)
+    ovirt.stop_vm(vm.name)
+    ovirt.remove_vm(vm.name)
+    ovirt.close_connection()
 
 def main():
     """
