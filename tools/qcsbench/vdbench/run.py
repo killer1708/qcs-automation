@@ -334,20 +334,10 @@ def get_current_host_ip():
     ip = ip.decode(encoding='UTF-8',errors='strict')
     return ip.rstrip('\n')
 
-def execute_vdbench(i):
+def execute_vdbench(thread_id, ovirt):
     log_dir = config.LOG_DIR
-    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-                        config.OVIRT_ENGINE_PASS)
-    log.info("Remove existing vms if any")
-    # search if vm is already present
-    vm = ovirt.search_vm(config.VM_NAME + str(i))
-    if vm:
-        # stop the vm
-        ovirt.stop_vm(config.VM_NAME + str(i))
-        # remove vm
-        ovirt.remove_vm(config.VM_NAME + str(i))
     log.info("Step 1. Creating {} VM(s)".format(config.SLAVE_VM_COUNT))
-    vm_name = config.VM_NAME + str(i)
+    vm_name = config.VM_NAME + str(thread_id)
     vm = ovirt.create_vm_from_template(vm_name,
                                        config.CLUSTER_NAME,
                                        config.TEMPLATE_NAME,
@@ -476,8 +466,6 @@ def execute_vdbench(i):
         cmd = "cmd /c del C:\\{}".format(paramfile)
         _, _, _ = host.conn.execute_command(cmd)
     ovirt.stop_vm(vm.name)
-    ovirt.remove_vm(vm.name)
-    ovirt.close_connection()
 
 def main():
     """
@@ -496,9 +484,24 @@ def main():
     log.info("Logs will be collected in '{}' directory".format(log_dir))
     log.info("logfile: {}".format(logfile))
 
+    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+                        config.OVIRT_ENGINE_PASS)
+    i = 0
+    vm = True
+    while(vm):
+        vm = ovirt.search_vm(config.VM_NAME + str(i))
+        if vm:
+            # stop the vm
+            ovirt.stop_vm(config.VM_NAME + str(i))
+            # remove vm
+            ovirt.remove_vm(config.VM_NAME + str(i))
+            i+=1
+        else:
+            break    
+
     jobs = []
-    for i in range(config.SLAVE_VM_COUNT):
-        thread = threading.Thread(target=execute_vdbench, args=(i,))
+    for thread_id in range(config.SLAVE_VM_COUNT):
+        thread = threading.Thread(target=execute_vdbench, args=(thread_id,ovirt,))
         jobs.append(thread)
 
     log.info(jobs)
@@ -511,6 +514,8 @@ def main():
         j.join()
 
     log.info("List processing complete.")
+    
+    ovirt.close_connection()
 
 
 if __name__ == '__main__':

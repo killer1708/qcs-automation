@@ -329,7 +329,8 @@ def start_fio_for_windows(host, ip, CURRENT_HOST_IP, thread_id):
         file_io_window(host, ip, CURRENT_HOST_IP, thread_id)
 
 
-def create_vms(thread_id):
+def create_vms(thread_id, ovirt):
+
     """
     Standalone fio execution steps:
     precondition: update config.py as per need
@@ -339,16 +340,6 @@ def create_vms(thread_id):
     4. Start fio load in foreground
     """
 
-    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-                        config.OVIRT_ENGINE_PASS)
-
-    vm = ovirt.search_vm(config.VM_NAME + str(thread_id))
-    if vm:
-        # stop the vm
-        ovirt.stop_vm(config.VM_NAME + str(thread_id))
-        # remove vm
-        ovirt.remove_vm(config.VM_NAME + str(thread_id))
-
     log.info("Step 1. Creating {} VM(s)".format(config.SLAVE_VM_COUNT))
 
     vm_name = config.VM_NAME + str(thread_id)
@@ -356,7 +347,6 @@ def create_vms(thread_id):
                                        config.CLUSTER_NAME,
                                        config.TEMPLATE_NAME,
                                        config.TEMPLATE_DS)
-    vms.append(vm)
 
     # get vms ips
     attempt_for_ip = 1
@@ -404,9 +394,7 @@ def create_vms(thread_id):
 
     # stop the vm
     ovirt.stop_vm(vm.name)
-    # remove vm
-    ovirt.remove_vm(vm.name)
-    ovirt.close_connection()
+   
 
 def main():
     if os.path.isdir(config.LOG_DIR):
@@ -419,9 +407,24 @@ def main():
     log.info("Logs will be collected in '{}' directory".format(log_dir))
     log.info("logfile: {}".format(logfile))
 
+    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+                        config.OVIRT_ENGINE_PASS)
+    i = 0
+    vm = True
+    while(vm):
+        vm = ovirt.search_vm(config.VM_NAME + str(i))
+        if vm:
+            # stop the vm
+            ovirt.stop_vm(config.VM_NAME + str(i))
+            # remove vm
+            ovirt.remove_vm(config.VM_NAME + str(i))
+            i+=1
+        else:
+            break
+    
     jobs = []
     for thread_id in range(config.SLAVE_VM_COUNT):
-        thread = threading.Thread(target=create_vms, args=(thread_id,))
+        thread = threading.Thread(target=create_vms, args=(thread_id, ovirt,))
         jobs.append(thread)
 
     log.info(jobs)
@@ -434,6 +437,8 @@ def main():
         j.join()
 
     log.info("List processing complete.")
+    
+    ovirt.close_connection() 
 
 
 if __name__ == '__main__':
