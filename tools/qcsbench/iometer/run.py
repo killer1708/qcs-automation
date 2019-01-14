@@ -351,38 +351,25 @@ def create_configuration_file_windows(master, host, configfile):
     fd1.close()
 
 
-def create_vms(i):
+def create_vms(thread_id, ovirt):
+ 
     """
     Standalone iometer execution steps:
     precondition: update config.py as per need
     1. create vms
     2. add disks
     3. choose file/block IO
-    4. start iometer load in foreground
+    4. Start iometer load in foreground
     """
-
-    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
-                        config.OVIRT_ENGINE_PASS)
-
-    log.info("Remove existing vms if any")
-    # search if vm is already present
-    vm = ovirt.search_vm(config.VM_NAME + str(i))
-    if vm:
-        # stop the vm
-        ovirt.stop_vm(config.VM_NAME + str(i))
-        # remove vm
-        ovirt.remove_vm(config.VM_NAME + str(i))
-
+ 
     log.info("Step 1. Creating {} VM(s)".format(config.SLAVE_VM_COUNT))
-
-    vm_name = config.VM_NAME + str(i)
+ 
+    vm_name = config.VM_NAME + str(thread_id)
     vm = ovirt.create_vm_from_template(vm_name,
                                        config.CLUSTER_NAME,
                                        config.TEMPLATE_NAME,
                                        config.TEMPLATE_DS)
-
-    # get vm ips
-    vm_ips = list()
+    # get vm ip
     attempt_for_ip = 1
     while (attempt_for_ip < 11):
         time.sleep(60)
@@ -520,10 +507,8 @@ def create_vms(i):
         log.info("Step 4. Do prerequisite and start iometer.")
         start_iometer_windows(master_host, host, current_host_ip, output_configfile)
     # stop the vm
-    ovirt.stop_vm(config.VM_NAME + str(i))
-    # remove vm
-    ovirt.remove_vm(config.VM_NAME + str(i))
-    ovirt.close_connection()
+    ovirt.stop_vm(vm.name)
+
 
 def main():
     if os.path.isdir(config.LOG_DIR):
@@ -535,10 +520,25 @@ def main():
     log.initialise(logfile, config.LOG_LEVEL)
     log.info("Logs will be collected in '{}' directory".format(log_dir))
     log.info("logfile: {}".format(logfile))
+    
+    ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
+                        config.OVIRT_ENGINE_PASS)
+    i = 0
+    vm = True
+    while(vm):
+        vm = ovirt.search_vm(config.VM_NAME + str(i))
+        if vm:
+            # stop the vm
+            ovirt.stop_vm(config.VM_NAME + str(i))
+            # remove vm
+            ovirt.remove_vm(config.VM_NAME + str(i))
+            i+=1
+        else:
+            break
 
     jobs = []
-    for i in range(config.SLAVE_VM_COUNT):
-        thread = threading.Thread(target=create_vms, args=(i,))
+    for thread_id in range(config.SLAVE_VM_COUNT):
+        thread = threading.Thread(target=create_vms, args=(thread_id, ovirt, ))
         jobs.append(thread)
 
     log.info(jobs)
@@ -551,7 +551,8 @@ def main():
         j.join()
 
     log.info("List processing complete.")
-
+    
+    ovirt.close_connection()
 
 if __name__ == '__main__':
     main()
