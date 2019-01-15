@@ -12,10 +12,10 @@ OVIRT_ENGINE_PASS = 'admin'
 CLUSTER_NAME = 'Default'
 
 # vm template name in ovirt
-TEMPLATE_NAME = 'automation_template_for_qcsbench_tool'
+TEMPLATE_NAME = 'rock'
 
 # template data domain
-TEMPLATE_DS = 'ovirt_data'
+TEMPLATE_DS = 'qcinder'
 
 # name of the vm to be created
 VM_NAME = 'qcs_vdbench_vm'
@@ -30,8 +30,8 @@ SLAVE_UNAME ='root'
 # vm password
 SLAVE_PASSWORD = 'master#123'
 
-# disk details
-DISK_COUNT = 1
+# disk details with there interfaces respectively
+INTERFACES = ['IDE','VIRTIO','VIRTIO-SCSI']
 DISK_SIZE_GB = 50
 
 # Current system details
@@ -58,7 +58,7 @@ WORKLOAD_INFO =  {
                                 "iorate" : "max"}
                  }
 # file io details
-LOAD_TYPE = 'file_io'
+"""LOAD_TYPE = 'file_io'
 WORKLOAD_INFO =  {
                   "fsd_params": {"depth": "1",
                                  "width": "1",
@@ -74,7 +74,7 @@ WORKLOAD_INFO =  {
                                  "maxdata": "1g",
                                  "format": "yes"}
                  }
-
+"""
 # verify data integrity - True|False
 DATA_VALIDATION = False
 
@@ -85,4 +85,4 @@ LOG_LEVEL = "DEBUG"
 LOG_DIR = "output"
 
 #Storage_Type either it can be IMAGE or CINDER
-STORAGE_TYPE = "IMAGE"
+STORAGE_TYPE = "CINDER"

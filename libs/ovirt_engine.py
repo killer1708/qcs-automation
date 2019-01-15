@@ -311,7 +311,7 @@ class OvirtEngine:
         vm_service.remove()
         log.info("Successfully removed vm {}".format(vm_name))
 
-    def add_disk(self, vm_name, disk_name, disk_size_gb, datastore,
+    def add_disk(self, vm_name, disk_name, interface_input, disk_size_gb, datastore,
         storage_type='IMAGE'):
         """
         Add disk to a VM
@@ -338,7 +338,16 @@ class OvirtEngine:
         # Note that the size of the disk, the `provisioned_size` attribute, is
         # specified in bytes, so to create a disk of 10 GiB the value should
         # be 10 * 2^30.
-        if((storage_type=='CINDER')and(disk_name=='disk_0')):
+        if(interface_input == 'IDE'):
+            interface_setup = types.DiskInterface.IDE
+        elif(interface_input == 'VIRTIO-SCSI'):
+            interface_setup = types.DiskInterface.VIRTIO_SCSI
+        elif(interface_input == 'VIRTIO'):
+            interface_setup = types.DiskInterface.VIRTIO
+        else:
+            log.info("Interface Type is not supported")
+            sys.exit()
+        if(storage_type=='CINDER'):
             disk_attachment = disk_attachments_service.add(
                 types.DiskAttachment(
                     disk=types.Disk(
@@ -354,32 +363,11 @@ class OvirtEngine:
                         openstack_volume_type=types.OpenStackVolumeType(
                            name="cinder_pool",),
                     ),
-                    interface=types.DiskInterface.IDE,
+                    interface=interface_setup,
                     bootable=False,
                     active=True,
                 ),
             )
-        elif(storage_type=='CINDER'):
-            disk_attachment = disk_attachments_service.add(
-                types.DiskAttachment(
-                    disk=types.Disk(
-                        name='%s'%disk_name,
-                        description='%s'%disk_name,
-                        format=types.DiskFormat.COW,
-                        provisioned_size=disk_size_gb * 2**30,
-                        storage_domains=[
-                            types.StorageDomain(
-                               name='%s'%datastore,
-                            ),
-                        ],
-                        openstack_volume_type=types.OpenStackVolumeType(
-                           name="cinder_pool",),
-                    ),
-                    interface=types.DiskInterface.VIRTIO_SCSI,
-                    bootable=False,
-                    active=True,
-                ),
-            )                
         else:
              disk_attachment = disk_attachments_service.add(
                 types.DiskAttachment(
@@ -394,11 +382,11 @@ class OvirtEngine:
                             ),
                         ],
                     ),
-                    interface=types.DiskInterface.VIRTIO_SCSI,
+                    interface=interface_setup,
                     bootable=False,
                     active=True,
                 ),
-            )
+            ) 
         # Wait till the disk is OK:
         disks_service = self.connection.system_service().disks_service()
         disk_service = disks_service.disk_service(disk_attachment.disk.id)
