@@ -31,8 +31,8 @@ SLAVE_UNAME='root'
 SLAVE_PASSWORD='master#123'
 
 # disk details
-# Number of disks you want to add to individual vm.
-DISK_COUNT = 1
+# Number of disks you want to add with there interface details respectively on individual vm.
+INTERFACES = ['IDE','VIRTIO','VIRTIO-SCSI']
 # The size of disk/s you want to give for individual or mutliple vm/s.
 DISK_SIZE_GB = 50
 

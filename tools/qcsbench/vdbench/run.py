@@ -362,9 +362,9 @@ def execute_vdbench(thread_id, ovirt):
     else:
         log.error("Unknown host type - {}".format(config.HOST_TYPE))
     log.info("Step 2. Add disk to VM(s)")
-    for i in range(config.DISK_COUNT):
+    for i in range(len(config.INTERFACES)):
         ovirt.add_disk(vm.name,
-            "disk_" + str(i),
+            "disk_" + str(i),config.INTERFACES[i],
             config.DISK_SIZE_GB,
             config.TEMPLATE_DS,
             config.STORAGE_TYPE)

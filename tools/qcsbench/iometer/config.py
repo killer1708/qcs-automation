@@ -47,8 +47,8 @@ WORKLOAD_INFO = {
 
 
 # ADD Disk details
-# number of disk to add
-DISK_COUNT = 1
+# number of disk to add with there interface detail respectively
+INTERFACES = ['IDE','VIRTIO','VIRTIO-SCSI']
 # disk name
 DISK_NAME='user_disk'
 # disk size

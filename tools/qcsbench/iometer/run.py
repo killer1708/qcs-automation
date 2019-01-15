@@ -402,20 +402,20 @@ def create_vms(thread_id, ovirt):
         # Add disks
         if config.LOAD_TYPE == 'block_io':
             log.info("Step 2. Add disk to VM(s)")
-            for i in range(config.DISK_COUNT):
+            for i in range(len(config.INTERFACES)):
                 ovirt.add_disk(vm.name,
-                                "disk_" + str(i),
-                                config.DISK_SIZE_GB,
-                                config.TEMPLATE_DS,
-                                config.STORAGE_TYPE)
+                               "disk_" + str(i),config.INTERFACES[i],
+                               config.DISK_SIZE_GB,
+                               config.TEMPLATE_DS,
+                               config.STORAGE_TYPE)
                 while ((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name) == "")):
                     continue
 
         elif config.LOAD_TYPE == 'file_io':
             log.info("Step 2. Add disk to VM(s)")
-            for i in range(config.DISK_COUNT):
+            for i in range(len(config.INTERFACES)):
                 ovirt.add_disk(vm.name,
-                               "disk_" + str(i),
+                               "disk_" + str(i),config.INTERFACES[i],
                                config.DISK_SIZE_GB,
                                config.TEMPLATE_DS,
                                config.STORAGE_TYPE)
@@ -461,9 +461,9 @@ def create_vms(thread_id, ovirt):
         # Add disks
         if config.LOAD_TYPE == 'block_io':
             log.info("Step 2. Add disk to VM(s)")
-            for i in range(config.DISK_COUNT):
+            for i in range(len(config.INTERFACES)):
                 ovirt.add_disk(vm.name,
-                               "disk_" + str(i),
+                               "disk_" + str(i),config.INTERFACES[i],
                                config.DISK_SIZE_GB,
                                config.TEMPLATE_DS,
                                config.STORAGE_TYPE)
@@ -473,9 +473,9 @@ def create_vms(thread_id, ovirt):
             host.refresh_disk_list()
         elif config.LOAD_TYPE == 'file_io':
             log.info("Step 2. Add disk to VM(s)")
-            for i in range(config.DISK_COUNT):
+            for i in range(len(config.INTERFACES)):
                 ovirt.add_disk(vm.name,
-                               "disk_" + str(i),
+                               "disk_" + str(i),config.INTERFACES[i],
                                config.DISK_SIZE_GB,
                                config.TEMPLATE_DS,
                                config.STORAGE_TYPE)
