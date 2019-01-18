@@ -507,7 +507,7 @@ def create_vms(thread_id, ovirt):
         log.info("Step 4. Do prerequisite and start iometer.")
         start_iometer_windows(master_host, host, current_host_ip, output_configfile)
     # stop the vm
-    ovirt.stop_vm(vm.name)
+    # ovirt.stop_vm(vm.name)
 
 
 def main():
