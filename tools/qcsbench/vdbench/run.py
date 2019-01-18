@@ -465,7 +465,8 @@ def execute_vdbench(thread_id, ovirt):
     else:
         cmd = "cmd /c del C:\\{}".format(paramfile)
         _, _, _ = host.conn.execute_command(cmd)
-    ovirt.stop_vm(vm.name)
+    
+    # ovirt.stop_vm(vm.name)
 
 def main():
     """
