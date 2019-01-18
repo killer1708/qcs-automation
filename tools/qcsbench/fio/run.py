@@ -393,7 +393,7 @@ def create_vms(thread_id, ovirt):
         start_fio_for_windows(host, ip, CURRENT_HOST_IP, thread_id)
 
     # stop the vm
-    ovirt.stop_vm(vm.name)
+    # ovirt.stop_vm(vm.name)
    
 
 def main():
