@@ -109,7 +109,6 @@ def start_iometer_windows(master_host, host, current_host_ip, configfile):
                  "cmd /c {0}\\IOmeter.exe /c {0}\\{1} /r {0}\\{2} /t 15" \
                      .format(config.IOMETER_SDK, config.IOMETER_CONFIG_FILE,
                             config.IOMETER_RESULT_FILE_NAME))
-    time.sleep(60)
     if status:
         log.info(stdout)
         log.error(stderr)
@@ -371,7 +370,7 @@ def create_vms(thread_id, ovirt):
     # get vm ip
     attempt_for_ip = 1
     while (attempt_for_ip < 11):
-        time.sleep(300)
+    #    time.sleep(300)
         ip = ovirt.get_vm_ip(vm.name)
         if ip:
             log.info("IP found for host {}".format(vm.name))
@@ -420,7 +419,6 @@ def create_vms(thread_id, ovirt):
             host.create_file_system_on_disks(config.WIN_IOMETER_EXC_LOC)
             # append to mountpoints
             host.mount_locations.append(host.filesystem_locations)
-            time.sleep(60)
             log.info("Filesystem mount locations are {}" \
                       .format(host.mount_locations))
             log.info("Disks are: {}".format(host.disk_list))
@@ -434,7 +432,6 @@ def create_vms(thread_id, ovirt):
         create_configuration_file_windows(master_host, host, output_configfile)
         current_host_ip = get_current_host_ip()
         log.info(current_host_ip)
-        time.sleep(60)
         log.info("Step 4. Do prerequisite and start iometer.")
         start_iometer_windows(master_host, host, current_host_ip, output_configfile)
         
