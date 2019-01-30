@@ -62,7 +62,6 @@ class Linux(Node):
         # issue lsscsi to list all devices
         cmd = "lsscsi | awk '{print $NF}'"
         status, lsscsi_out, stderr = self.conn.execute_command(cmd)
-
         # skip boot and cdrom drive
         cmd = "mount | grep -i boot | awk '{print $1}'"
         status, stdout, stderr = self.conn.execute_command(cmd)
