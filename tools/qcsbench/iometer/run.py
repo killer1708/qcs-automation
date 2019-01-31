@@ -108,7 +108,7 @@ def start_iometer_windows(master_host, host, current_host_ip, configfile):
             master_host.conn.execute_command(
                  "cmd /c {0}IOmeter.exe /c {0}{1} /r {0}{2} /t 15" \
                      .format(config.IOMETER_SDK, config.IOMETER_CONFIG_FILE,
-                            config.IOMETER_RESULT_FILE_NAME))
+                            config.IOMETER_RESULT_FILE_NAME+str(host.ip)))
     if status:
         log.info(stdout)
         log.error(stderr)
@@ -120,9 +120,9 @@ def start_iometer_windows(master_host, host, current_host_ip, configfile):
     output_directory = os.path.abspath(config.IOMETER_OUTPUT_DIR)
     _, stdout, stderr = \
         master_host.conn.execute_command(
-        "cmd \/c echo y | pscp.exe -pw {2} {4}result.csv {1}@{0}:{3}"\
+        "cmd \/c echo y | pscp.exe -pw {2} {4}{5} {1}@{0}:{3}"\
         .format(current_host_ip, config.CURRENT_UNAME, config.CURRENT_PASSWD,
-                output_directory, config.IOMETER_SDK))
+                output_directory, config.IOMETER_SDK, config.IOMETER_RESULT_FILE_NAME+str(host.ip)))
 
 def start_iometer_linux(master, host, current_host_ip, configfile):
     """
