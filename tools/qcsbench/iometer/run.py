@@ -107,8 +107,8 @@ def start_iometer_windows(master_host, host, current_host_ip, configfile):
     status, stdout, stderr = \
             master_host.conn.execute_command(
                  "cmd /c {0}IOmeter.exe /c {0}{1} /r {0}{2} /t 15" \
-                     .format(config.IOMETER_SDK, config.IOMETER_CONFIG_FILE,
-                            config.IOMETER_RESULT_FILE_NAME+str(host.ip)))
+                     .format(config.IOMETER_SDK, str(host.ip)+'_'+config.IOMETER_CONFIG_FILE,
+                            str(host.ip)+'_'+config.IOMETER_RESULT_FILE_NAME))
     if status:
         log.info(stdout)
         log.error(stderr)
@@ -116,13 +116,13 @@ def start_iometer_windows(master_host, host, current_host_ip, configfile):
         log.info("IOMeter completed successfully.")
 
     # copy result file into output dir
-
+    
     output_directory = os.path.abspath(config.IOMETER_OUTPUT_DIR)
     _, stdout, stderr = \
         master_host.conn.execute_command(
         "cmd \/c echo y | pscp.exe -pw {2} {4}{5} {1}@{0}:{3}"\
         .format(current_host_ip, config.CURRENT_UNAME, config.CURRENT_PASSWD,
-                output_directory, config.IOMETER_SDK, config.IOMETER_RESULT_FILE_NAME+str(host.ip)))
+                output_directory, config.IOMETER_SDK, str(host.ip)+'_'+config.IOMETER_RESULT_FILE_NAME))
 
 def start_iometer_linux(master, host, current_host_ip, configfile):
     """
@@ -170,8 +170,8 @@ def start_iometer_linux(master, host, current_host_ip, configfile):
     status, stdout, stderr = \
         master.conn.execute_command(
             "cmd \/c {0}IOmeter.exe /c {0}{1} /r {0}{2} /t 15" \
-                .format(config.IOMETER_SDK, config.IOMETER_CONFIG_FILE,
-                        config.IOMETER_RESULT_FILE_NAME+str(host.ip)))
+                .format(config.IOMETER_SDK, str(host.ip)+'_'+config.IOMETER_CONFIG_FILE,
+                        str(host.ip)+'_'+config.IOMETER_RESULT_FILE_NAME))
     if status:
         log.info(stdout)
         log.error(stderr)
@@ -179,12 +179,13 @@ def start_iometer_linux(master, host, current_host_ip, configfile):
         log.info("IOMeter completed successfully.")
 
     # copy result file into output dir
-    output_directory = os.path.abspath(config.IOMETER_OUTPUT_DIR)
+    output = os.path.join(config.IOMETER_OUTPUT_DIR, str(host.ip))
+    output_directory = os.path.abspath(output)
     _, stdout, stderr = \
         master.conn.execute_command(
         "cmd \/c echo y | pscp.exe -pw {2} {4}{5} {1}@{0}:{3}"\
         .format(current_host_ip, config.CURRENT_UNAME, config.CURRENT_PASSWD,
-                output_directory, config.IOMETER_SDK, config.IOMETER_RESULT_FILE_NAME+str(host.ip)))
+                output_directory, config.IOMETER_SDK, str(host.ip)+'_'+config.IOMETER_RESULT_FILE_NAME))
 
 def create_configuration_file_linux(master, host, configfile):
     """
@@ -465,7 +466,11 @@ def create_vms(thread_id, ovirt):
 
         log.info("Step 3. Create config file based on load type")
         log_dir = config.LOG_DIR
-        output_configfile = os.path.join(log_dir, config.IOMETER_CONFIG_FILE)
+        log_dir = os.path.join(log_dir, ip)
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+        IOMETER_CONFIG_FILE = ip+'_'+config.IOMETER_CONFIG_FILE
+        output_configfile = os.path.join(log_dir, IOMETER_CONFIG_FILE)
         output_configfile = os.path.abspath(output_configfile)
         log.info("Output configuration file {}".format(output_configfile))
         create_configuration_file_linux(master_host, host, output_configfile)
@@ -509,6 +514,7 @@ def main():
 
     for j in jobs:
         j.start()
+        time.sleep(300)
         log.info("Thread {}".format(j))
 
     for j in jobs:
