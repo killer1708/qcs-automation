@@ -1,7 +1,7 @@
 # Ovirt Engine and host details
 
 # ovirt server ip
-OVIRT_ENGINE_IP = '192.168.105.224'
+OVIRT_ENGINE_IP = '192.168.105.232'
 
 # ovirt server name
 OVIRT_ENGINE_UNAME = 'admin@internal'
@@ -13,7 +13,7 @@ OVIRT_ENGINE_PASS = 'admin'
 CLUSTER_NAME = 'Default'
 
 # automation template name
-TEMPLATE_NAME = 'rock'
+TEMPLATE_NAME = 'champ'
 
 # ovirt storage name
 TEMPLATE_DS = 'qcinder'
@@ -23,16 +23,16 @@ VM_NAME = 'qcs_iometer_vm'
 
 # slave vm details
 # number of vm to create
-SLAVE_VM_COUNT=4
+SLAVE_VM_COUNT=1
 # vm user name
 #SLAVE_UNAME='root'
-SLAVE_UNAME ='root'
+SLAVE_UNAME ='admin'
 # vm password
 #SLAVE_PASSWORD='master@123'
-SLAVE_PASSWORD ='master#123'
+SLAVE_PASSWORD ='admin'
 # slave vm host type, possible values - linux|windows
-HOST_TYPE = 'linux'
-#HOST_TYPE = 'windows'
+#HOST_TYPE = 'linux'
+HOST_TYPE = 'windows'
 # load type on slave vms, possible values - block_io|file_io
 #LOAD_TYPE = 'file_io'
 LOAD_TYPE = 'block_io'
@@ -63,8 +63,8 @@ CURRENT_PASSWD='master#123'
 # dynamo path from copy
 LOCAL_PATH = 'dynamo'
 # dynamo path to copy on remote machine
-REMOTE_PATH = '/root/dynamo'
-#REMOTE_PATH = 'C:\\dynamo'
+#REMOTE_PATH = '/root/dynamo'
+REMOTE_PATH = 'C:\\Iometer\\'
 
 # Iometer server credential
 # Iometer server ip
@@ -76,8 +76,8 @@ IOMETER_UNAME = 'admin'
 IOMETER_PASSWD = 'admin'
 
 # Iometer exe location
-#IOMETER_SDK = "C:\\Users\\msys\\Desktop\\iometer_sdk\\"
-IOMETER_SDK = "C:\\iometer\\"
+#IOMETER_SDK = "C:\\Users\\msys\\Desktop\\iometer_sdk"
+IOMETER_SDK = "C:\\Iometer\\"
 # Iometer config file path
 IOMETER_CONFIG_FILE = "test_iometer.icf"
 # IOMETER output dir
@@ -98,3 +98,5 @@ BASE_IOMETER_FILE = "iometer.icf"
 #Storage_Type either it can be IMAGE or CINDER
 #STORAGE_TYPE = "IMAGE"
 STORAGE_TYPE = "CINDER"
+
+POOL_NAME = "cinder_pool"
