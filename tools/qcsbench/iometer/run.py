@@ -100,7 +100,7 @@ def start_iometer_windows(master_host, host, current_host_ip, configfile):
     _, stdout, stderr = \
         host.conn.execute_command(
              "cmd /c START /B {0}dynamo -i {1} -m {2} "\
-             .format(config.IOMETER_SDK, master_host.ip, host.ip))
+             .format(config.REMOTE_PATH , master_host.ip, host.ip))
     log.info("Started Dynamo on client {}".format(host.ip))
 
     # start iometer on Iometer server
@@ -387,7 +387,7 @@ def create_vms(thread_id, ovirt):
     # get vm ip
     attempt_for_ip = 1
     while (attempt_for_ip < 11):
-    #    time.sleep(300)
+        #time.sleep(300)
         ip = ovirt.get_vm_ip(vm.name)
         if ip:
             log.info("IP found for host {}".format(vm.name))
@@ -420,7 +420,7 @@ def create_vms(thread_id, ovirt):
             "disk_" + str(i),config.INTERFACES[i],
             config.DISK_SIZE_GB,
             config.TEMPLATE_DS,
-            config.STORAGE_TYPE)
+            config.STORAGE_TYPE, config.POOL_NAME)
         while ((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name)
                 == "")):
                 continue

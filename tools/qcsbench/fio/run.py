@@ -380,7 +380,7 @@ def create_vms(thread_id, ovirt):
             "disk_" + str(i),config.INTERFACES[i],
             config.DISK_SIZE_GB,
             config.TEMPLATE_DS,
-            config.STORAGE_TYPE)
+            config.STORAGE_TYPE, config.POOL_NAME)
         while ((ovirt.get_vm_ip(vm.name) == None) or (ovirt.get_vm_ip(vm.name)
                 == "")):
                 continue

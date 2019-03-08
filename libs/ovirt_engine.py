@@ -312,7 +312,7 @@ class OvirtEngine:
         log.info("Successfully removed vm {}".format(vm_name))
 
     def add_disk(self, vm_name, disk_name, interface_input, disk_size_gb, datastore,
-        storage_type='IMAGE'):
+        storage_type, pool_name):
         """
         Add disk to a VM
         :param vm_name - VM name
@@ -361,7 +361,7 @@ class OvirtEngine:
                             ),
                         ],
                         openstack_volume_type=types.OpenStackVolumeType(
-                           name="cinder_pool",),
+                           name=pool_name,),
                     ),
                     interface=interface_setup,
                     bootable=False,

@@ -1,6 +1,6 @@
 # Ovirt Engine and host details
 # ovirt server ip
-OVIRT_ENGINE_IP = '192.168.105.161'
+OVIRT_ENGINE_IP = '192.168.105.232'
 
 # ovirt user name
 OVIRT_ENGINE_UNAME = 'admin@internal'
@@ -86,3 +86,5 @@ LOG_DIR = "output"
 
 #Storage_Type either it can be IMAGE or CINDER
 STORAGE_TYPE = "CINDER"
+
+POOL_NAME = "cinder_pool"

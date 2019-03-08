@@ -1,6 +1,6 @@
 # Ovirt Engine and host details
 # ovirt server ip
-OVIRT_ENGINE_IP = '192.168.105.196'
+OVIRT_ENGINE_IP = '192.168.105.232'
 
 # ovirt user name
 OVIRT_ENGINE_UNAME = 'admin@internal'
@@ -12,7 +12,7 @@ OVIRT_ENGINE_PASS = 'admin'
 CLUSTER_NAME='Default'
 
 # vm template name in ovirt
-TEMPLATE_NAME='champ1'
+TEMPLATE_NAME='rock'
 
 # template data domain
 TEMPLATE_DS='qcinder'
@@ -22,7 +22,7 @@ VM_NAME='qcs_fio_vm'
 
 # slave vm details
 # number vm to be create
-SLAVE_VM_COUNT= 2
+SLAVE_VM_COUNT= 1
 # slave vm type: linux|windows
 HOST_TYPE = 'linux'
 # vm user name
@@ -77,4 +77,6 @@ FIO_RESULT_FILE = "result.txt"
 STORAGE_TYPE = "CINDER"
 
 TOOL_NAME = "FIO"
+
+POOL_NAME = "cinder_pool"
 
