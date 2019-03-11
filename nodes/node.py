@@ -255,7 +255,8 @@ class Windows(Node):
 
     def change_hostname(self):
         localtime = time.asctime(time.localtime(time.time()))
-        new_name = "slave_{}"+localtime.replace(" ", "_")
+        new_name1 = "slave"+localtime.replace(" ", "")
+        new_name = new_name1.replace(":","")
         cmd1 = "cmd /c hostname"
         status, hostname, stderr = self.conn.execute_command(cmd1)
         cmd = "cmd /c WMIC computersystem where caption='"+str(hostname[0])+"' rename {}".format(new_name)
@@ -263,7 +264,9 @@ class Windows(Node):
         if status:
             log.info(stdout)
             log.error("change_hostname Command did not executed successfully")
-        #time.sleep(60)
+            return
+        status, stdout, stderr = self.conn.execute_command("cmd /c shutdown /r /t 0 ")
+        time.sleep(180)
 
     @property
     def disk_list(self):
