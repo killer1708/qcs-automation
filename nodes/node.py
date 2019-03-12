@@ -255,8 +255,9 @@ class Windows(Node):
 
     def change_hostname(self):
         localtime = time.asctime(time.localtime(time.time()))
-        new_name1 = "slave"+localtime.replace(" ", "")
-        new_name = new_name1.replace(":","")
+        new_name1 = localtime.replace(" ", "")
+        new_name2 = new_name1.replace(":","")
+        new_name = "slave"+new_name2[8:14]
         cmd1 = "cmd /c hostname"
         status, hostname, stderr = self.conn.execute_command(cmd1)
         cmd = "cmd /c WMIC computersystem where caption='"+str(hostname[0])+"' rename {}".format(new_name)
