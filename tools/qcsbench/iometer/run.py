@@ -510,6 +510,13 @@ def main():
     log.info("Logs will be collected in '{}' directory".format(log_dir))
     log.info("logfile: {}".format(logfile))
     
+    master_host = Windows(config.IOMETER_SERVER, config.IOMETER_UNAME,
+                          config.IOMETER_PASSWD)
+    status, stdout, stderr = master_host.conn.execute_command(
+                             "cmd /c del {}*.csv".format(config.IOMETER_SDK))
+    status, stdout, stderr = master_host.conn.execute_command(
+                             "cmd /c del {}*.icf".format(config.IOMETER_SDK))
+    
     ovirt = OvirtEngine(config.OVIRT_ENGINE_IP, config.OVIRT_ENGINE_UNAME,
                         config.OVIRT_ENGINE_PASS)
     i = 0
